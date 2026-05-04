@@ -54,9 +54,9 @@ export default function Header({
         
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-sm bg-accent animate-pulse" />
-          <h1 className="text-sm font-bold tracking-[3px] text-white uppercase">
-            <span className="text-accent">INDIA</span>
-            <span className="text-gray-400 font-light ml-1">MONITOR</span>
+          <h1 className="text-sm font-bold tracking-[3px] text-white flex items-baseline gap-1">
+            <span className="text-gray-400 font-light uppercase">Observe</span>
+            <span className="text-accent font-houljoe normal-case tracking-normal text-[1.35rem] leading-none">India</span>
           </h1>
         </div>
 

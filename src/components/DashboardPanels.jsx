@@ -859,35 +859,47 @@ function ElectionsPanel() {
 // ─── Dashboard Footer Panel ──────────────────────────────────
 function SystemInfoPanel() {
   return (
-    <Panel title="System Manifest" icon={Cpu} badge="VERSION 3.0" badgeColor="info" span={2}>
-      <div className="flex flex-col md:flex-row justify-between gap-6">
-        <div className="flex-1">
-          <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 border-b border-dark-500 pb-1">Core Architecture</div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-            <StatValue label="Geospatial" value="MapLibre" small />
-            <StatValue label="LLM Intelligence" value="Groq v3.1" small />
-            <StatValue label="Icons" value="Lucide" small />
-            <StatValue label="Aesthetic" value="Nothing OS" small />
+    <Panel title="Signal Deck" icon={Cpu} badge="LIVE SURFACE" badgeColor="info" span={2}>
+      <div className="grid gap-4 md:grid-cols-[1.3fr_0.9fr_0.8fr] items-stretch">
+        <div className="rounded-sm border border-dark-500 bg-white/[0.02] p-4">
+          <div className="text-[10px] text-gray-500 uppercase tracking-[0.35em] mb-3">Observe India</div>
+          <div className="flex items-baseline gap-2 mb-2">
+            <span className="text-2xl font-semibold text-white">01</span>
+            <span className="text-[10px] text-gray-400 uppercase tracking-[0.3em]">Live civic signal layer</span>
+          </div>
+          <p className="text-[10px] leading-relaxed text-gray-500 max-w-md">
+            A compact editorial surface for markets, weather, alerts, and live coverage. Built to stay readable, fast, and low-noise.
+          </p>
+        </div>
+
+        <div className="rounded-sm border border-dark-500 bg-white/[0.02] p-4">
+          <div className="text-[10px] text-gray-500 uppercase tracking-[0.35em] mb-3">Sources</div>
+          <div className="grid grid-cols-2 gap-2">
+            <StatValue label="Live Feeds" value="12" small />
+            <StatValue label="Coverage" value="36 States" small />
+            <StatValue label="Update Pace" value="Realtime" small />
+            <StatValue label="Layout" value="Modular" small />
           </div>
         </div>
-        <div className="flex-1">
-          <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 border-b border-dark-500 pb-1">Legal & Open Source</div>
-          <p className="text-[9px] text-gray-600 font-mono leading-relaxed mb-3 uppercase">
-            Real-time surveillance monitor and intelligence aggregator. All nodes operational. Utilizing public data feeds for non-classified strategic analysis.
-          </p>
-          <div className="flex items-center flex-wrap gap-3">
-             <a 
-               href="https://github.com/Aftab-S/India-Monitor" 
-               target="_blank" 
-               rel="noreferrer" 
-               className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 border border-white/10 hover:border-accent hover:text-white transition-all text-[9px] font-mono tracking-widest text-gray-400 uppercase cursor-pointer group"
-             >
-                <ExternalLink size={10} className="group-hover:text-accent" />
-                <span>Github Repository</span>
-             </a>
-             <div className="flex items-center gap-1.5 px-2 py-1.5 border border-dark-500 text-[8px] font-mono text-gray-700 uppercase tracking-tighter">
-                BUILD_2026.05.04_REL_A
-             </div>
+
+        <div className="rounded-sm border border-dark-500 bg-white/[0.02] p-4 flex flex-col justify-between gap-3">
+          <div>
+            <div className="text-[10px] text-gray-500 uppercase tracking-[0.35em] mb-3">Release</div>
+            <div className="flex items-center gap-1.5 px-2 py-1.5 border border-dark-500 text-[8px] font-mono text-gray-700 uppercase tracking-tighter w-fit">
+              BUILD_2026.05.04_REL_A
+            </div>
+          </div>
+          <a 
+            href="https://github.com/Aftab-S/India-Monitor" 
+            target="_blank" 
+            rel="noreferrer" 
+            className="flex items-center justify-between gap-2 px-2.5 py-2 bg-white/5 border border-white/10 hover:border-accent hover:text-white transition-all text-[9px] font-mono tracking-widest text-gray-400 uppercase cursor-pointer group"
+          >
+            <span>Star on GitHub</span>
+            <ExternalLink size={10} className="group-hover:text-accent" />
+          </a>
+          <div className="text-[9px] text-gray-600 uppercase tracking-[0.3em]">
+            © 2026 Observe India
           </div>
         </div>
       </div>

@@ -1,6 +1,12 @@
 @import "tailwindcss";
 @import "maplibre-gl/dist/maplibre-gl.css";
 
+@font-face {
+  font-family: 'Houljoe';
+  src: url('/fonts/HouljoeRegular-lxWyZ.ttf') format('truetype');
+  font-display: swap;
+}
+
 @theme {
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'Space Mono', 'JetBrains Mono', monospace;
@@ -217,6 +223,10 @@ body {
   0% { bottom: 100%; }
   80% { bottom: 100%; }
   100% { bottom: -100px; }
+}
+
+.font-houljoe {
+  font-family: 'Houljoe', var(--font-sans);
 }
 
 /* react-grid-layout custom styles */
