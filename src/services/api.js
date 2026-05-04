@@ -4,31 +4,40 @@ import { WEATHER_CITIES, WEATHER_CODES } from '../data/constants';
 // ─── Weather (Open-Meteo — free, no key) ─────────────────────
 export async function fetchWeather(cities = WEATHER_CITIES) {
   return fetchWithCache('india:weather:cities', async () => {
-    const results = [];
-    for (const city of cities) {
-      try {
-        const data = await fetchJSON(
-          `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=Asia/Kolkata`
-        );
-        results.push({
-          city: city.name,
-          temp: data.current?.temperature_2m,
-          humidity: data.current?.relative_humidity_2m,
-          windSpeed: data.current?.wind_speed_10m,
-          weatherCode: data.current?.weather_code,
-          condition: WEATHER_CODES[data.current?.weather_code] || 'Unknown',
-        });
-      } catch (err) {
-        results.push({ city: city.name, error: true });
-      }
-      await delay(100);
+    try {
+      const lats = cities.map(c => c.lat).join(',');
+      const lngs = cities.map(c => c.lng).join(',');
+      const data = await fetchJSON(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lngs}&current=temperature_2m,relative_humidity_2m,weather_code&timezone=Asia/Kolkata`
+      );
+
+      // Open-Meteo returns an array of objects if multiple lat/lng are provided
+      const results = (Array.isArray(data) ? data : [data]).map((item, i) => ({
+        city: cities[i].name,
+        temp: item.current?.temperature_2m,
+        humidity: item.current?.relative_humidity_2m,
+        condition: WEATHER_CODES[item.current?.weather_code] || 'Unknown',
+      }));
+      return results;
+    } catch (err) {
+      console.error('[Weather API Error]', err);
+      return cities.map(c => ({ city: c.name, error: true }));
     }
-    return results;
   }, 10 * 60 * 1000);
 }
 
-export async function fetchStateWeather(lat, lng) {
-  return fetchWithCache(`india:weather:${lat}:${lng}`, async () => {
+export async function fetchStateWeather(locationName, fallbackLat, fallbackLng) {
+  return fetchWithCache(`india:weather:${locationName}`, async () => {
+    let lat = fallbackLat;
+    let lng = fallbackLng;
+    try {
+      const geo = await fetchJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(locationName)}&count=1&language=en&format=json`);
+      if (geo.results && geo.results.length > 0) {
+        lat = geo.results[0].latitude;
+        lng = geo.results[0].longitude;
+      }
+    } catch(e) {}
+
     const data = await fetchJSON(
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,apparent_temperature&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Asia/Kolkata&forecast_days=5`
     );
@@ -149,13 +158,54 @@ const POLITICS_FEEDS = {
 };
 
 export async function fetchNews(category = 'general') {
-  const feeds = category === 'tech' ? TECH_FEEDS : 
-                category === 'politics' ? POLITICS_FEEDS : NEWS_FEEDS;
-  
+  const newsDataKey = import.meta.env.VITE_NEWSDATA_API_KEY;
+  const newsApiKey = import.meta.env.VITE_NEWSAPI_KEY;
+
   return fetchWithCache(`india:news:${category}`, async () => {
+    // 1. Try NewsData.io (Primary)
+    if (newsDataKey) {
+      try {
+        const query = category === 'tech' ? 'technology' : category === 'politics' ? 'politics' : 'india';
+        const data = await fetchJSON(`https://newsdata.io/api/1/latest?apikey=${newsDataKey}&q=${query}&country=in&language=en`);
+        if (data.results?.length > 0) {
+          return data.results.map(item => ({
+            title: item.title,
+            url: item.link,
+            source: item.source_id?.toUpperCase() || 'NewsData',
+            timeAgo: relativeTime(item.pubDate),
+            pubDate: item.pubDate
+          }));
+        }
+      } catch (err) {
+        console.warn('[NewsData] Failed, falling back:', err.message);
+      }
+    }
+
+    // 2. Try NewsAPI (Secondary)
+    if (newsApiKey) {
+      try {
+        const topic = category === 'tech' ? 'technology' : category === 'politics' ? 'politics' : 'general';
+        const data = await fetchJSON(`https://newsapi.org/v2/top-headlines?apiKey=${newsApiKey}&country=in&category=${topic}`);
+        if (data.articles?.length > 0) {
+          return data.articles.map(item => ({
+            title: item.title,
+            url: item.url,
+            source: item.source?.name || 'NewsAPI',
+            timeAgo: relativeTime(item.publishedAt),
+            pubDate: item.publishedAt
+          }));
+        }
+      } catch (err) {
+        console.warn('[NewsAPI] Failed, falling back:', err.message);
+      }
+    }
+
+    // 3. Ultimate Fallback: RSS Feeds
+    const feeds = category === 'tech' ? TECH_FEEDS : 
+                  category === 'politics' ? POLITICS_FEEDS : NEWS_FEEDS;
+    
     const allItems = [];
     const feedEntries = Object.entries(feeds);
-    
     const results = await Promise.allSettled(
       feedEntries.map(([source, url]) => fetchRSS(url).then(items => 
         items.map(item => ({ ...item, source }))
@@ -177,9 +227,44 @@ export async function fetchNews(category = 'general') {
 }
 
 export async function fetchDistrictNews(district) {
+  const newsDataKey = import.meta.env.VITE_NEWSDATA_API_KEY;
+  const newsApiKey = import.meta.env.VITE_NEWSAPI_KEY;
+
   return fetchWithCache(`india:news:district:${district}`, async () => {
+    // 1. Try NewsData.io
+    if (newsDataKey) {
+      try {
+        const query = encodeURIComponent(`"${district}" AND India`);
+        const data = await fetchJSON(`https://newsdata.io/api/1/latest?apikey=${newsDataKey}&q=${query}&country=in&language=en`);
+        if (data.results && data.results.length > 0) {
+          return data.results.map(item => ({
+            title: item.title,
+            url: item.link,
+            source: item.source_id?.toUpperCase() || 'NewsData',
+            timeAgo: relativeTime(item.pubDate),
+          }));
+        }
+      } catch (err) {}
+    }
+
+    // 2. Try NewsAPI
+    if (newsApiKey) {
+      try {
+        const query = encodeURIComponent(`"${district}"`);
+        const data = await fetchJSON(`https://newsapi.org/v2/everything?q=${query}&sortBy=publishedAt&apiKey=${newsApiKey}`);
+        if (data.articles && data.articles.length > 0) {
+          return data.articles.map(item => ({
+            title: item.title,
+            url: item.url,
+            source: item.source?.name || 'NewsAPI',
+            timeAgo: relativeTime(item.publishedAt),
+          }));
+        }
+      } catch (err) {}
+    }
+
+    // 3. Fallback: GDELT
     try {
-      // Use GDELT for hyper-local search
       const data = await fetchJSON(
         `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(district + ' India')}&mode=artlist&maxrecords=10&format=json&sort=datedesc`
       );
@@ -193,6 +278,47 @@ export async function fetchDistrictNews(district) {
       return [];
     }
   }, 30 * 60 * 1000);
+}
+
+export async function fetchStateInfraNews(stateName) {
+  const newsDataKey = import.meta.env.VITE_NEWSDATA_API_KEY;
+  const newsApiKey = import.meta.env.VITE_NEWSAPI_KEY;
+
+  return fetchWithCache(`india:infra:${stateName}`, async () => {
+    // 1. Try NewsData.io
+    if (newsDataKey) {
+      try {
+        const query = encodeURIComponent(`"${stateName}" AND (infrastructure OR development OR projects)`);
+        const data = await fetchJSON(`https://newsdata.io/api/1/latest?apikey=${newsDataKey}&q=${query}&country=in&language=en`);
+        if (data.results && data.results.length > 0) {
+          return data.results.slice(0, 3).map(item => ({
+            title: item.title,
+            url: item.link,
+            source: item.source_id?.toUpperCase() || 'NewsData',
+            timeAgo: relativeTime(item.pubDate),
+          }));
+        }
+      } catch (err) {}
+    }
+
+    // 2. Try NewsAPI
+    if (newsApiKey) {
+      try {
+        const query = encodeURIComponent(`"${stateName}" AND (infrastructure OR development)`);
+        const data = await fetchJSON(`https://newsapi.org/v2/everything?q=${query}&sortBy=relevancy&apiKey=${newsApiKey}`);
+        if (data.articles && data.articles.length > 0) {
+          return data.articles.slice(0, 3).map(item => ({
+            title: item.title,
+            url: item.url,
+            source: item.source?.name || 'NewsAPI',
+            timeAgo: relativeTime(item.publishedAt),
+          }));
+        }
+      } catch (err) {}
+    }
+
+    return [];
+  }, 60 * 60 * 1000);
 }
 
 // ─── GDELT Intelligence (free, no key) ────────────────────────
@@ -254,8 +380,18 @@ export async function fetchMarketIndices() {
 }
 
 // ─── Air Quality (Open-Meteo AQI — free) ──────────────────────
-export async function fetchAirQuality(lat, lng) {
-  return fetchWithCache(`india:aqi:${lat}:${lng}`, async () => {
+export async function fetchAirQuality(locationName, fallbackLat, fallbackLng) {
+  return fetchWithCache(`india:aqi:${locationName}`, async () => {
+    let lat = fallbackLat;
+    let lng = fallbackLng;
+    try {
+      const geo = await fetchJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(locationName)}&count=1&language=en&format=json`);
+      if (geo.results && geo.results.length > 0) {
+        lat = geo.results[0].latitude;
+        lng = geo.results[0].longitude;
+      }
+    } catch(e) {}
+
     try {
       const data = await fetchJSON(
         `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=pm10,pm2_5,european_aqi`
@@ -289,17 +425,58 @@ export async function fetchWikipediaSummary(query) {
   }, 24 * 60 * 60 * 1000); // 24h cache stringency
 }
 
+// ─── Groq AI Intelligence Briefing ────────────────────────────
+export async function fetchGroqIntelligence(district, state) {
+  const groqKey = import.meta.env.VITE_GROQ_API_KEY;
+  if (!groqKey) return null;
+
+  return fetchWithCache(`india:groq:${district}:${state}`, async () => {
+    try {
+      const prompt = `Provide a concise, 3-sentence intelligence brief on the district of ${district} in ${state}, India. Focus on its strategic importance, major industries, and recent developments. Keep it highly professional and factual.`;
+      
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${groqKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: 'llama-3.1-8b-instant',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 150,
+          temperature: 0.2
+        })
+      });
+
+      if (!response.ok) return null;
+      const data = await response.json();
+      
+      return {
+        title: `${district} Intelligence Overview`,
+        extract: data.choices[0].message.content.trim(),
+        url: `https://en.wikipedia.org/wiki/${encodeURIComponent(district)}`,
+        thumbnail: null
+      };
+    } catch (e) {
+      console.warn('[Groq API Error]', e);
+      return null;
+    }
+  }, 24 * 60 * 60 * 1000);
+}
+
 // ─── Re-exports from Static Intelligence Database ─────────────
 import { 
   STATE_ECONOMY, CROP_PRICES, WATER_RESERVOIRS, 
   CYBER_THREATS, BORDER_STATUS, INFRA_TARGETS,
-  ELECTION_DATA, UNICORN_DATA
+  ELECTION_DATA, UNICORN_DATA, STATE_DEMOGRAPHICS, STATE_AGRICULTURE,
+  SAFE_REGIONS
 } from '../data/intelligence';
 
 export { 
   STATE_ECONOMY, CROP_PRICES, WATER_RESERVOIRS, 
   CYBER_THREATS, BORDER_STATUS, INFRA_TARGETS,
-  ELECTION_DATA, UNICORN_DATA
+  ELECTION_DATA, UNICORN_DATA, STATE_DEMOGRAPHICS, STATE_AGRICULTURE,
+  SAFE_REGIONS
 };
 
 // Simplified static data retainers

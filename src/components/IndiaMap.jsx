@@ -59,7 +59,7 @@ export default function IndiaMap({ onStateSelect, selectedState }) {
           {
             id: 'background',
             type: 'background',
-            paint: { 'background-color': '#060d0a' }
+            paint: { 'background-color': '#000000' }
           }
         ],
         glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf'
@@ -121,23 +121,28 @@ export default function IndiaMap({ onStateSelect, selectedState }) {
           data: geojson,
         });
 
-        // State fill layer
+        // State fill layer — extremely subtle, near-invisible fill
         map.addLayer({
           id: 'state-fill',
           type: 'fill',
           source: 'india-states',
           paint: {
-            'fill-color': ['get', 'fillColor'],
+            'fill-color': [
+              'case',
+              ['boolean', ['feature-state', 'hover'], false],
+              '#ffffff',
+              '#111111',
+            ],
             'fill-opacity': [
               'case',
               ['boolean', ['feature-state', 'hover'], false],
-              0.55,
-              0.25,
+              0.08,
+              0.4,
             ],
           },
         });
 
-        // State border layer
+        // State border layer — crisp white wireframe lines
         map.addLayer({
           id: 'state-border',
           type: 'line',
@@ -146,15 +151,16 @@ export default function IndiaMap({ onStateSelect, selectedState }) {
             'line-color': [
               'case',
               ['boolean', ['feature-state', 'hover'], false],
-              '#00ff88',
-              'rgba(0, 255, 136, 0.2)',
+              '#ffffff',
+              '#333333',
             ],
             'line-width': [
               'case',
               ['boolean', ['feature-state', 'hover'], false],
-              2,
-              0.8,
+              1.5,
+              0.6,
             ],
+            'line-dasharray': [3, 2],
           },
         });
 
@@ -165,14 +171,14 @@ export default function IndiaMap({ onStateSelect, selectedState }) {
           source: 'india-states',
           layout: {
             'text-field': ['get', 'stateCode'],
-            'text-size': 10,
+            'text-size': 9,
             'text-font': ['Noto Sans Regular'],
             'text-allow-overlap': false,
             'text-ignore-placement': false,
           },
           paint: {
-            'text-color': 'rgba(255,255,255,0.5)',
-            'text-halo-color': 'rgba(0,0,0,0.7)',
+            'text-color': '#555555',
+            'text-halo-color': '#000000',
             'text-halo-width': 1,
           },
           minzoom: 4.5,
@@ -233,49 +239,81 @@ export default function IndiaMap({ onStateSelect, selectedState }) {
           }
         });
 
-        // Add grid lines for futuristic look
-        map.addSource('grid-meridians', {
+        // Add dense grid lines for technical look
+        const gridFeatures = [];
+        for (let lng = 60; lng <= 100; lng += 2.5) {
+          gridFeatures.push({
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: [[lng, 5], [lng, 40]] }
+          });
+        }
+        for (let lat = 5; lat <= 40; lat += 2.5) {
+          gridFeatures.push({
+            type: 'Feature',
+            geometry: { type: 'LineString', coordinates: [[60, lat], [105, lat]] }
+          });
+        }
+
+        map.addSource('tech-grid', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: gridFeatures }
+        });
+
+        map.addLayer({
+          id: 'tech-grid',
+          type: 'line',
+          source: 'tech-grid',
+          paint: {
+            'line-color': '#1a1a1a',
+            'line-width': 0.5,
+            'line-dasharray': [1, 4],
+          }
+        }, 'state-fill');
+
+        // Major city nodes
+        map.addSource('city-nodes', {
           type: 'geojson',
           data: {
             type: 'FeatureCollection',
-            features: Array.from({ length: 8 }, (_, i) => ({
-              type: 'Feature',
-              geometry: {
-                type: 'LineString',
-                coordinates: [[65 + i * 5, 5], [65 + i * 5, 40]],
-              },
-            })),
-          },
+            features: [
+              { type: 'Feature', geometry: { type: 'Point', coordinates: [77.1025, 28.7041] }, properties: { name: 'DELHI' } },
+              { type: 'Feature', geometry: { type: 'Point', coordinates: [72.8777, 19.0760] }, properties: { name: 'MUMBAI' } },
+              { type: 'Feature', geometry: { type: 'Point', coordinates: [77.5946, 12.9716] }, properties: { name: 'BENGALURU' } },
+              { type: 'Feature', geometry: { type: 'Point', coordinates: [88.3639, 22.5726] }, properties: { name: 'KOLKATA' } },
+              { type: 'Feature', geometry: { type: 'Point', coordinates: [80.2707, 13.0827] }, properties: { name: 'CHENNAI' } },
+            ]
+          }
         });
 
-        map.addSource('grid-parallels', {
-          type: 'geojson',
-          data: {
-            type: 'FeatureCollection',
-            features: Array.from({ length: 8 }, (_, i) => ({
-              type: 'Feature',
-              geometry: {
-                type: 'LineString',
-                coordinates: [[65, 5 + i * 5], [100, 5 + i * 5]],
-              },
-            })),
-          },
+        map.addLayer({
+          id: 'city-nodes',
+          type: 'circle',
+          source: 'city-nodes',
+          paint: {
+            'circle-radius': 3,
+            'circle-color': '#ffffff',
+            'circle-stroke-width': 2,
+            'circle-stroke-color': 'rgba(255,255,255,0.1)',
+          }
         });
 
-        // Grid must be under state fill
         map.addLayer({
-          id: 'grid-meridians',
-          type: 'line',
-          source: 'grid-meridians',
-          paint: { 'line-color': 'rgba(0, 255, 136, 0.04)', 'line-width': 0.5 },
-        }, 'state-fill');
-
-        map.addLayer({
-          id: 'grid-parallels',
-          type: 'line',
-          source: 'grid-parallels',
-          paint: { 'line-color': 'rgba(0, 255, 136, 0.04)', 'line-width': 0.5 },
-        }, 'state-fill');
+          id: 'city-labels',
+          type: 'symbol',
+          source: 'city-nodes',
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-font': ['Noto Sans Regular'],
+            'text-size': 8,
+            'text-offset': [0, 1.5],
+            'text-anchor': 'top',
+          },
+          paint: {
+            'text-color': '#888888',
+            'text-halo-color': '#000000',
+            'text-halo-width': 1,
+          }
+        });
 
         // Assign feature IDs for hover state
         const src = map.getSource('india-states');
@@ -298,9 +336,9 @@ export default function IndiaMap({ onStateSelect, selectedState }) {
   }, [onStateSelect]);
 
   return (
-    <div className="relative w-full h-full bg-[#060d0a]">
+    <div className="relative w-full h-full bg-black">
       {/* Map title bar */}
-      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 py-2 bg-dark-800/80 backdrop-blur-sm border-b border-dark-500/30">
+      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 py-2 bg-black border-b border-dark-500">
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-semibold tracking-[2px] text-gray-400 uppercase">National Overview</span>
           <span className="text-[9px] text-gray-600">·</span>
@@ -315,11 +353,13 @@ export default function IndiaMap({ onStateSelect, selectedState }) {
       </div>
 
       {/* Map container */}
-      <div ref={mapContainerRef} className="w-full h-full" />
+      <div ref={mapContainerRef} className="w-full h-full dot-matrix relative overflow-hidden">
+        <div className="scanline" />
+      </div>
 
       {/* Loading overlay */}
       {!mapLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#060d0a]/90 z-20">
+        <div className="absolute inset-0 flex items-center justify-center bg-black z-20">
           <div className="flex flex-col items-center gap-3">
             <div className="relative w-16 h-16">
               <div className="absolute inset-0 border-2 border-accent/20 rounded-full" />
@@ -333,11 +373,11 @@ export default function IndiaMap({ onStateSelect, selectedState }) {
 
       {/* Legend */}
       {mapLoaded && (
-        <div className="absolute bottom-8 left-3 z-10 flex flex-wrap gap-x-3 gap-y-1 px-3 py-2 bg-dark-800/80 backdrop-blur-sm rounded-lg border border-dark-500/30">
+        <div className="absolute bottom-8 left-3 z-10 flex flex-wrap gap-x-3 gap-y-1 px-3 py-2 bg-black border border-dark-500">
           {Object.entries(REGION_COLORS).map(([region, color]) => (
             <div key={region} className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color, opacity: 0.7 }} />
-              <span className="text-[9px] text-gray-500">{region}</span>
+              <div className="w-2 h-2 rounded-none" style={{ backgroundColor: color }} />
+              <span className="text-[9px] text-gray-500 font-mono tracking-widest uppercase">{region}</span>
             </div>
           ))}
         </div>

@@ -40,26 +40,33 @@ export const STATES = [
 
 export const REGIONS = ['North', 'South', 'East', 'West', 'Central', 'Northeast', 'Island'];
 
+// Region colors — monochrome-compatible gray tones with subtle differentiation
 export const REGION_COLORS = {
-  North: '#3b82f6',
-  South: '#8b5cf6',
-  East: '#06b6d4',
-  West: '#f59e0b',
-  Central: '#ef4444',
-  Northeast: '#10b981',
-  Island: '#ec4899',
+  North: '#808080',
+  South: '#606060',
+  East: '#999999',
+  West: '#707070',
+  Central: '#555555',
+  Northeast: '#8a8a8a',
+  Island: '#4a4a4a',
 };
 
 // API Endpoints (all free)
 export const API = {
-  YAHOO_FINANCE: 'https://query1.finance.yahoo.com/v8/finance/chart/',
   OPEN_METEO: 'https://api.open-meteo.com/v1/forecast',
-  OPENAQ: 'https://api.openaq.org/v2',
+  AIR_QUALITY: 'https://air-quality-api.open-meteo.com/v1/air-quality',
   WORLD_BANK: 'https://api.worldbank.org/v2',
   USGS_EARTHQUAKE: 'https://earthquake.usgs.gov/fdsnws/event/1/query',
   GDELT: 'https://api.gdeltproject.org/api/v2',
   RSS_PROXY: 'https://api.allorigins.win/raw?url=',
   EXCHANGE_RATE: 'https://open.er-api.com/v6/latest/INR',
+  NEWSDATA: 'https://newsdata.io/api/1/latest',
+  NEWSAPI: 'https://newsapi.org/v2/top-headlines',
+  APITUBE: 'https://api.apitube.io/v1/news/everything',
+  OMDB: 'https://www.omdbapi.com/',
+  GOLD_API: 'https://www.goldapi.io/api',
+  COMMODITIES: 'https://commodities-api.com/api/latest',
+  METALPRICE: 'https://api.metalpriceapi.com/v1/latest',
 };
 
 // Major Indian cities for weather
@@ -76,7 +83,37 @@ export const WEATHER_CITIES = [
   { name: 'Lucknow', lat: 26.8467, lng: 80.9462 },
 ];
 
-// Market symbols for Yahoo Finance
+// AQI cities — same 10 major cities for consistent live AQI data
+export const AQI_CITIES = [
+  { name: 'Delhi', lat: 28.7041, lng: 77.1025 },
+  { name: 'Mumbai', lat: 19.0760, lng: 72.8777 },
+  { name: 'Bengaluru', lat: 12.9716, lng: 77.5946 },
+  { name: 'Chennai', lat: 13.0827, lng: 80.2707 },
+  { name: 'Kolkata', lat: 22.5726, lng: 88.3639 },
+  { name: 'Hyderabad', lat: 17.3850, lng: 78.4867 },
+  { name: 'Pune', lat: 18.5204, lng: 73.8567 },
+  { name: 'Ahmedabad', lat: 23.0225, lng: 72.5714 },
+  { name: 'Jaipur', lat: 26.9124, lng: 75.7873 },
+  { name: 'Lucknow', lat: 26.8467, lng: 80.9462 },
+];
+
+// Curated list of popular & upcoming Indian movies for OMDB lookup
+export const POPULAR_MOVIES = [
+  { title: 'Pushpa 2: The Rule', year: '2024', id: 'tt14923452' },
+  { title: 'Kalki 2898 AD', year: '2024', id: 'tt13623148' },
+  { title: 'Stree 2', year: '2024', id: 'tt15428134' },
+  { title: 'Fighter', year: '2024', id: 'tt10886130' },
+  { title: 'Animal', year: '2023', id: 'tt13751694' },
+  { title: 'Jawan', year: '2023', id: 'tt15354916' },
+  { title: 'Pathaan', year: '2023', id: 'tt12844910' },
+  { title: 'RRR', year: '2022', id: 'tt8178634' },
+  { title: 'KGF: Chapter 2', year: '2022', id: 'tt10322938' },
+  { title: 'Singham Again', year: '2024', id: 'tt15433956' },
+  { title: 'Bhool Bhulaiyaa 3', year: '2024', id: 'tt22669498' },
+  { title: 'Oppenheimer', year: '2023', id: 'tt15398776' },
+];
+
+// Market symbols
 export const MARKET_SYMBOLS = {
   indices: [
     { symbol: '^NSEI', name: 'NIFTY 50' },
@@ -97,13 +134,13 @@ export const MARKET_SYMBOLS = {
     { symbol: 'NG=F', name: 'Natural Gas' },
   ],
   sectors: [
-    { name: 'IT', symbol: '^CNXIT', color: '#3b82f6' },
-    { name: 'Banking', symbol: '^NSEBANK', color: '#10b981' },
-    { name: 'Pharma', symbol: '^CNXPHARMA', color: '#8b5cf6' },
-    { name: 'Auto', symbol: '^CNXAUTO', color: '#f59e0b' },
-    { name: 'FMCG', symbol: '^CNXFMCG', color: '#ec4899' },
-    { name: 'Energy', symbol: '^CNXENERGY', color: '#ef4444' },
-    { name: 'Metal', symbol: '^CNXMETAL', color: '#6b7280' },
+    { name: 'IT', symbol: '^CNXIT', color: '#6b8cff' },
+    { name: 'Banking', symbol: '^NSEBANK', color: '#34d399' },
+    { name: 'Pharma', symbol: '^CNXPHARMA', color: '#a78bfa' },
+    { name: 'Auto', symbol: '^CNXAUTO', color: '#fbbf24' },
+    { name: 'FMCG', symbol: '^CNXFMCG', color: '#f472b6' },
+    { name: 'Energy', symbol: '^CNXENERGY', color: '#f87171' },
+    { name: 'Metal', symbol: '^CNXMETAL', color: '#94a3b8' },
   ],
 };
 
@@ -117,20 +154,20 @@ export const INDIA_BOUNDS = {
 
 // Refresh intervals (ms)
 export const REFRESH_INTERVALS = {
-  markets: 12 * 60 * 1000,      // 12 min
-  currency: 12 * 60 * 1000,     // 12 min
-  weather: 10 * 60 * 1000,      // 10 min
-  airQuality: 15 * 60 * 1000,   // 15 min
-  news: 20 * 60 * 1000,         // 20 min
-  security: 30 * 60 * 1000,     // 30 min
-  mandi: 60 * 60 * 1000,        // 60 min
-  monsoon: 60 * 60 * 1000,      // 60 min
-  rbiPolicy: 6 * 60 * 60 * 1000,// 6 hr
-  macro: 6 * 60 * 60 * 1000,    // 6 hr
-  energy: 30 * 60 * 1000,       // 30 min
-  fires: 30 * 60 * 1000,        // 30 min
-  disasters: 15 * 60 * 1000,    // 15 min
-  trade: 24 * 60 * 60 * 1000,   // 24 hr
+  markets: 12 * 60 * 1000,
+  currency: 12 * 60 * 1000,
+  weather: 10 * 60 * 1000,
+  airQuality: 15 * 60 * 1000,
+  news: 20 * 60 * 1000,
+  security: 30 * 60 * 1000,
+  mandi: 60 * 60 * 1000,
+  gold: 30 * 60 * 1000,
+  commodities: 60 * 60 * 1000,
+  movies: 24 * 60 * 60 * 1000,
+  rbiPolicy: 6 * 60 * 60 * 1000,
+  macro: 6 * 60 * 60 * 1000,
+  energy: 30 * 60 * 1000,
+  trade: 24 * 60 * 60 * 1000,
 };
 
 // WMO weather code descriptions
@@ -144,4 +181,17 @@ export const WEATHER_CODES = {
   77: 'Snow grains', 80: 'Slight showers', 81: 'Mod. showers',
   82: 'Heavy showers', 85: 'Slight snow showers', 86: 'Heavy snow showers',
   95: 'Thunderstorm', 96: 'Thunderstorm w/ hail', 99: 'Thunderstorm w/ heavy hail',
+};
+
+// Weather icons for codes
+export const WEATHER_ICONS = {
+  0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
+  45: '🌫️', 48: '🌫️', 51: '🌦️', 53: '🌦️',
+  55: '🌧️', 56: '🌧️', 57: '🌧️',
+  61: '🌧️', 63: '🌧️', 65: '🌧️',
+  66: '🌨️', 67: '🌨️',
+  71: '❄️', 73: '❄️', 75: '❄️',
+  77: '❄️', 80: '🌦️', 81: '🌧️',
+  82: '⛈️', 85: '🌨️', 86: '🌨️',
+  95: '⛈️', 96: '⛈️', 99: '⛈️',
 };

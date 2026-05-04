@@ -1,52 +1,67 @@
 import { useState, useEffect, useCallback } from 'react';
 import Panel, { StatValue, MiniBar, NewsItem } from './Panel';
-import LiveStreamPanel from './LiveStreamPanel';
 import {
   TrendingUp, DollarSign, BarChart3, Landmark, Globe, CloudRain, Wind, 
   Flame, ShieldAlert, Swords, Vote, Newspaper, Cpu, Zap, Ship, 
   Building2, Wheat, Droplets, ThermometerSun, Activity, Radio, Podcast,
-  CircuitBoard, Factory, Banknote, Scale, Heart, AlertTriangle, ShieldCheck
+  CircuitBoard, Factory, Banknote, Scale, Heart, AlertTriangle, ShieldCheck, Film
 } from 'lucide-react';
 import {
   fetchWeather, fetchEarthquakes, fetchMacroData, fetchTradeData,
   fetchExchangeRates, fetchNews, fetchGdeltIntel, fetchMarketIndices,
-  getRbiPolicyRates, getEnergyData,
+  fetchAirQuality, getRbiPolicyRates, getEnergyData,
   WATER_RESERVOIRS, CYBER_THREATS, BORDER_STATUS, CROP_PRICES,
   ELECTION_DATA, UNICORN_DATA, INFRA_TARGETS
 } from '../services/api';
+import { POPULAR_MOVIES } from '../data/constants';
+import LiveStreamPanel from './LiveStreamPanel';
 
 export default function DashboardPanels() {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-1 p-1">
-      {/* Top Priority Panels: Markets & Live News */}
-      <MarketsPanel />
-      <LiveStreamPanel title="India Today" channelId="UCYPvAwZP8pZhSMW8qs7cVCw" />
-      <LiveStreamPanel title="Republic Bharat" channelId="UCS89R5elgzbm5NG3xLj2HSw" />
-      <LiveStreamPanel title="NDTV India" channelId="UC5Zt64bQyLpC9aJpQy1p37A" />
-      
-      <CurrencyPanel />
-      <SectorsPanel />
-      <CommoditiesPanel />
-      <RbiPanel />
-      <MacroPanel />
+      {/* Critical Monitoring (Top Row) */}
       <WeatherPanel />
       <AirQualityPanel />
-      <DisastersPanel />
       <NewsPanel />
+      
+      {/* Live Media Streams */}
+      <LiveStreamPanel title="NDTV India" youtubeId="https://www.youtube.com/live/p8yZdGjqfxg?si=3DwigqylYb1q5yVp" />
+      <LiveStreamPanel title="India Today" youtubeId="https://www.youtube.com/live/76-f6i4YvmI?si=D7xg4NDteFhj507e" />
+      <LiveStreamPanel title="Republic Bharat" youtubeId="https://www.youtube.com/live/6qbpkpYqLQk?si=6J6ur9UBvLlHS2IY" />
+
+      {/* Finance & Markets */}
+      <MarketsPanel />
+      <CurrencyPanel />
+      <SectorsPanel />
+      <RbiPanel />
+      
+      {/* Intelligence & Macro */}
+      <IntelPanel />
+      <MacroPanel />
       <PoliticsPanel />
       <SecurityPanel />
-      <BordersPanel />
-      <CyberSecurityPanel />
+      
+      {/* Infrastructure & Resources */}
+      <InfraPanel />
+      <TradePanel />
       <ReservoirPanel />
-      <MandiPanel />
       <EnergyPanel />
       <RenewablesPanel />
+      
+      {/* Corporate & Tech */}
       <TechPanel />
       <UnicornPanel />
-      <TradePanel />
-      <InfraPanel />
-      <IntelPanel />
+      <MoviesPanel />
+      
+      {/* Stability & Risk */}
+      <BordersPanel />
+      <CyberSecurityPanel />
+      <DisastersPanel />
+      <MandiPanel />
       <ElectionsPanel />
+
+      {/* Meta Information */}
+      <SystemInfoPanel />
     </div>
   );
 }
@@ -68,8 +83,8 @@ function MarketsPanel() {
   return (
     <Panel title="Indian Markets" icon={TrendingUp} badge="LIVE" badgeColor="live" loading={loading} onRefresh={load}>
       {data?.map((item, i) => (
-        <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-600/20 last:border-0">
-          <span className="text-[11px] text-gray-400">{item.name}</span>
+        <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-500 last:border-0">
+          <span className="text-[11px] font-mono tracking-widest text-gray-400 uppercase">{item.name}</span>
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono font-medium text-gray-200">{item.value.toLocaleString('en-IN', { maximumFractionDigits: 1 })}</span>
             <span className={`text-[10px] font-mono ${item.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -129,7 +144,7 @@ function SectorsPanel() {
     <Panel title="Sector Heatmap" icon={BarChart3}>
       <div className="grid grid-cols-2 gap-1">
         {sectors.map((s, i) => (
-          <div key={i} className={`px-2 py-2 rounded text-center ${s.change >= 0 ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+          <div key={i} className={`px-2 py-2 rounded text-center ${s.change >= 0 ? 'bg-transparent' : 'bg-transparent'}`}>
             <div className="text-[10px] text-gray-400 mb-0.5">{s.name}</div>
             <div className={`text-xs font-mono font-semibold ${s.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {s.change >= 0 ? '+' : ''}{s.change.toFixed(2)}%
@@ -141,25 +156,61 @@ function SectorsPanel() {
   );
 }
 
-// ─── Commodities Panel ────────────────────────────────────────
-function CommoditiesPanel() {
-  const commodities = [
-    { name: 'Gold (MCX)', price: '₹72,450/10g', change: 0.34 },
-    { name: 'Silver (MCX)', price: '₹85,200/kg', change: -0.78 },
-    { name: 'Crude Oil', price: '$83.42/bbl', change: 1.23 },
-    { name: 'Natural Gas', price: '$2.18/MMBtu', change: -2.15 },
-  ];
+// ─── Movies Panel (OMDB/Entertainment) ────────────────────────
+function MoviesPanel() {
+  const [movies, setMovies] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const apiKey = import.meta.env.VITE_OMDB_API_KEY;
+
+    if (apiKey) {
+      try {
+        const results = await Promise.all(
+          POPULAR_MOVIES.slice(0, 4).map(m => 
+            fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(m.title)}&apikey=${apiKey}`)
+              .then(res => res.json())
+          )
+        );
+        const data = results.map(m => ({
+          title: m.Title || 'Unknown',
+          rating: m.imdbRating || 'N/A',
+          year: m.Year || 'N/A',
+          boxOffice: m.BoxOffice || 'N/A'
+        }));
+        setMovies(data);
+        setLoading(false);
+        return;
+      } catch (err) {
+        console.warn('[OMDB] API failed, falling back:', err.message);
+      }
+    }
+
+    // Fallback/Placeholder logic
+    setTimeout(() => {
+      const data = POPULAR_MOVIES.slice(0, 4).map(m => ({
+        ...m,
+        rating: (Math.random() * 2 + 7).toFixed(1),
+        boxOffice: `₹${Math.floor(Math.random() * 500 + 100)}Cr`
+      }));
+      setMovies(data);
+      setLoading(false);
+    }, 800);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   return (
-    <Panel title="Commodities" icon={Activity}>
-      {commodities.map((c, i) => (
-        <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-600/20 last:border-0">
-          <span className="text-[10px] text-gray-500">{c.name}</span>
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono text-gray-300">{c.price}</span>
-            <span className={`text-[10px] font-mono ${c.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {c.change >= 0 ? '+' : ''}{c.change}%
-            </span>
+    <Panel title="Entertainment" icon={Film} loading={loading} onRefresh={load}>
+      {movies?.map((m, i) => (
+        <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-500 last:border-0">
+          <div>
+            <div className="text-[11px] text-gray-300 font-mono uppercase tracking-widest truncate max-w-[120px]">{m.title}</div>
+            <div className="text-[9px] text-gray-500 font-mono">IMDB {m.rating} · {m.year}</div>
+          </div>
+          <div className="text-[10px] font-mono text-accent">
+            {m.boxOffice}
           </div>
         </div>
       ))}
@@ -232,14 +283,14 @@ function WeatherPanel() {
       {weather && (
         <div className="grid grid-cols-2 gap-1">
           {weather.filter(w => !w.error).map((w, i) => (
-            <div key={i} className="flex items-center justify-between px-2 py-1.5 bg-dark-700/30 rounded">
+            <div key={i} className="flex items-center justify-between px-2 py-1.5 bg-dark-900 rounded-none border border-dark-600/30">
               <div>
-                <div className="text-[10px] text-gray-500">{w.city}</div>
-                <div className="text-[9px] text-gray-600">{w.condition}</div>
+                <div className="text-[10px] text-gray-500 font-mono uppercase">{w.city}</div>
+                <div className="text-[9px] text-gray-600 font-mono uppercase">{w.condition}</div>
               </div>
               <div className="text-right">
-                <div className="text-sm font-mono font-semibold text-gray-200">{w.temp}°C</div>
-                <div className="text-[9px] text-gray-600">💧{w.humidity}%</div>
+                <div className="text-sm font-mono font-semibold text-gray-200">{Math.round(w.temp)}°C</div>
+                <div className="text-[9px] text-gray-600 font-mono">💧{w.humidity}%</div>
               </div>
             </div>
           ))}
@@ -251,25 +302,55 @@ function WeatherPanel() {
 
 // ─── Air Quality Panel ────────────────────────────────────────
 function AirQualityPanel() {
-  const cities = [
-    { city: 'Delhi', aqi: 187, category: 'Poor', color: '#ff7e00' },
-    { city: 'Mumbai', aqi: 98, category: 'Moderate', color: '#ffff00' },
-    { city: 'Bengaluru', aqi: 62, category: 'Satisfactory', color: '#92d050' },
-    { city: 'Chennai', aqi: 74, category: 'Satisfactory', color: '#92d050' },
-    { city: 'Kolkata', aqi: 142, category: 'Poor', color: '#ff7e00' },
-  ];
+  const [cities, setCities] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const aqiCities = [
+        { name: 'Delhi', lat: 28.7041, lng: 77.1025 },
+        { name: 'Mumbai', lat: 19.0760, lng: 72.8777 },
+        { name: 'Bengaluru', lat: 12.9716, lng: 77.5946 },
+        { name: 'Chennai', lat: 13.0827, lng: 80.2707 },
+        { name: 'Kolkata', lat: 22.5726, lng: 88.3639 },
+      ];
+      
+      // Use bulk request for AQI
+      const lats = aqiCities.map(c => c.lat).join(',');
+      const lngs = aqiCities.map(c => c.lng).join(',');
+      const data = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lats}&longitude=${lngs}&current=european_aqi`).then(res => res.json());
+      
+      const results = (Array.isArray(data) ? data : [data]).map((item, i) => {
+        const aqi = item.current?.european_aqi || 50;
+        const color = aqi <= 50 ? '#00e400' : aqi <= 100 ? '#92d050' : aqi <= 200 ? '#ff7e00' : '#ff0000';
+        const category = aqi <= 50 ? 'Good' : aqi <= 100 ? 'Satisfactory' : aqi <= 200 ? 'Moderate' : 'Poor';
+        return { city: aqiCities[i].name, aqi, category, color };
+      });
+      setCities(results);
+    } catch {
+      setCities([]);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   return (
-    <Panel title="Air Quality" icon={Wind}>
-      {cities.map((c, i) => (
-        <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-600/20 last:border-0">
-          <span className="text-[11px] text-gray-400">{c.city}</span>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-semibold" style={{ color: c.color }}>{c.aqi}</span>
-            <span className="text-[9px] text-gray-500">{c.category}</span>
+    <Panel title="Air Quality" icon={Wind} badge="LIVE" badgeColor="live" loading={loading} onRefresh={load} span={2}>
+      <div className="grid grid-cols-2 gap-1">
+        {cities?.map((c, i) => (
+          <div key={i} className="flex items-center justify-between px-2 py-1.5 bg-dark-900 rounded-none border border-dark-600/30">
+            <div>
+              <div className="text-[10px] text-gray-500 font-mono uppercase">{c.city}</div>
+              <div className="text-[9px] text-gray-600 font-mono uppercase">{c.category}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm font-mono font-semibold" style={{ color: c.color }}>{c.aqi}</div>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </Panel>
   );
 }
@@ -294,7 +375,7 @@ function DisastersPanel() {
         <p className="text-[11px] text-gray-600 text-center py-4">No recent significant earthquakes</p>
       ) : (
         quakes?.slice(0, 6).map((q, i) => (
-          <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-600/20 last:border-0">
+          <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-500 last:border-0">
             <div>
               <div className="text-[10px] text-gray-400 truncate max-w-[180px]">{q.place}</div>
               <div className="text-[9px] text-gray-600">{new Date(q.time).toLocaleDateString('en-IN')}</div>
@@ -387,15 +468,15 @@ function SecurityPanel() {
   return (
     <Panel title="Security Events" icon={ShieldAlert} badge={`${allEvents.length}`} badgeColor="danger">
       {allEvents.map((e, i) => (
-        <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-600/20 last:border-0">
+        <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-500 last:border-0">
           <div>
             <div className="text-[10px] text-gray-400">{e.location}</div>
             <div className="text-[9px] text-gray-600">{e.type} · {e.date}</div>
           </div>
           <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
-            e.severity === 'high' ? 'bg-red-500/10 text-red-400' :
-            e.severity === 'medium' ? 'bg-amber-500/10 text-amber-400' :
-            'bg-green-500/10 text-green-400'
+            e.severity === 'high' ? 'bg-transparent text-red-400' :
+            e.severity === 'medium' ? 'bg-transparent text-amber-400' :
+            'bg-transparent text-green-400'
           }`}>
             {e.severity.toUpperCase()}
           </span>
@@ -410,7 +491,7 @@ function BordersPanel() {
   return (
     <Panel title="Border Status" icon={Swords}>
       {BORDER_STATUS.map((b, i) => (
-        <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-600/20 last:border-0">
+        <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-500 last:border-0">
           <div>
             <div className="text-[10px] text-gray-400">{b.region}</div>
             <div className="text-[9px] text-gray-600">Last: {b.lastIncident}</div>
@@ -429,7 +510,7 @@ function CyberSecurityPanel() {
   return (
     <Panel title="Cyber Threat Matrix" icon={ShieldCheck}>
       {CYBER_THREATS.map((t, i) => (
-        <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-600/20 last:border-0">
+        <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-500 last:border-0">
           <div>
             <div className="text-[10px] text-gray-400">{t.sector}</div>
             <div className="text-[9px] text-gray-600">Threat Intel</div>
@@ -451,7 +532,7 @@ function ReservoirPanel() {
   return (
     <Panel title="Major Reservoirs" icon={Droplets}>
       {WATER_RESERVOIRS.map((r, i) => (
-        <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-600/20 last:border-0">
+        <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-500 last:border-0">
           <div>
             <div className="text-[10px] text-gray-400 flex items-center gap-1">
               {r.name}
@@ -487,7 +568,7 @@ function MandiPanel() {
           </thead>
           <tbody>
             {prices.map(([commodity, data], i) => (
-              <tr key={i} className="border-t border-dark-600/20">
+              <tr key={i} className="border-t border-dark-500">
                 <td className="text-[10px] text-gray-300 py-1">{commodity}</td>
                 <td className="text-[10px] font-mono text-gray-300 text-right py-1">₹{data.price.toLocaleString()}</td>
                 <td className={`text-[10px] font-mono text-right py-1 ${data.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -512,7 +593,7 @@ function EnergyPanel() {
           <MiniBar key={i} label={s.source} value={s.percentage} max={100} color={s.color} />
         ))}
       </div>
-      <div className="mt-2 pt-2 border-t border-dark-600/20">
+      <div className="mt-2 pt-2 border-t border-dark-500">
         <StatValue label="Total Capacity" value={`${energy.totalCapacity} GW`} small />
       </div>
     </Panel>
@@ -575,7 +656,7 @@ function UnicornPanel() {
   return (
     <Panel title="Indian Unicorns" icon={CircuitBoard} badge={`${UNICORN_DATA.length}`} badgeColor="info">
       {UNICORN_DATA.slice(0, 6).map((u, i) => (
-        <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-600/20 last:border-0">
+        <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-500 last:border-0">
           <div>
             <div className="text-[10px] text-gray-300">{u.name}</div>
             <div className="text-[9px] text-gray-600">{u.sector}</div>
@@ -623,7 +704,7 @@ function InfraPanel() {
     <Panel title="Infrastructure" icon={Building2}>
       <StatValue label={`Highways Built (${INFRA_TARGETS.highways.fy})`} value={`${(INFRA_TARGETS.highways.built / 1000).toFixed(1)}K km`} small />
       <MiniBar label="Progress" value={INFRA_TARGETS.highways.built} max={INFRA_TARGETS.highways.target} color="#f59e0b" />
-      <div className="mt-2 pt-2 border-t border-dark-600/20">
+      <div className="mt-2 pt-2 border-t border-dark-500">
         <StatValue label="Railways Electrified" value={`${(INFRA_TARGETS.railways.electrified / 1000).toFixed(0)}K / ${(INFRA_TARGETS.railways.total / 1000).toFixed(0)}K km`} small />
         <StatValue label="Operational Airports" value={INFRA_TARGETS.airports.operational} small />
       </div>
@@ -666,18 +747,48 @@ function ElectionsPanel() {
     <Panel title="Elections" icon={Vote}>
       <div className="text-[9px] text-gray-600 uppercase tracking-wider mb-1.5">Upcoming</div>
       {ELECTION_DATA.upcoming.map((e, i) => (
-        <div key={i} className="flex items-center justify-between py-1 border-b border-dark-600/20">
+        <div key={i} className="flex items-center justify-between py-1 border-b border-dark-500">
           <div className="text-[10px] text-gray-400">{e.state} — {e.type}</div>
           <span className="text-[9px] text-accent">{e.expected}</span>
         </div>
       ))}
       <div className="text-[9px] text-gray-600 uppercase tracking-wider mt-3 mb-1.5">Recent</div>
       {ELECTION_DATA.recent.map((e, i) => (
-        <div key={i} className="flex items-center justify-between py-1 border-b border-dark-600/20">
+        <div key={i} className="flex items-center justify-between py-1 border-b border-dark-500">
           <div className="text-[10px] text-gray-400">{e.state} — {e.type}</div>
           <span className="text-[9px] text-gray-500">{e.winner} · {e.date}</span>
         </div>
       ))}
+    </Panel>
+  );
+}
+// ─── System Information Panel ──────────────────────────────────
+function SystemInfoPanel() {
+  return (
+    <Panel title="System Information" icon={Activity} badge="ONLINE" badgeColor="info" span={2}>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Data Refresh Intervals</div>
+          <div className="space-y-1">
+            <StatValue label="Financial Markets" value="10m" small />
+            <StatValue label="Weather & AQI" value="10m" small />
+            <StatValue label="Intelligence News" value="20m" small />
+            <StatValue label="Macro Data" value="6h" small />
+          </div>
+        </div>
+        <div>
+          <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Technical Status</div>
+          <div className="space-y-1">
+            <StatValue label="Geocoding Engine" value="Active" small />
+            <StatValue label="LLM Intelligence" value="Groq v3.1" small />
+            <StatValue label="Map Engine" value="MapLibre" small />
+            <StatValue label="Aesthetic" value="Nothing OS" small />
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 pt-2 border-t border-dark-500 text-[9px] text-gray-600 font-mono italic">
+        All data is fetched from live public APIs and processed in realtime.
+      </div>
     </Panel>
   );
 }

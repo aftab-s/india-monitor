@@ -75,3 +75,43 @@ export const UNICORN_DATA = [
   { name: 'Zerodha', sector: 'Fintech', valuation: 3.6, year: 2020 },
   { name: 'Razorpay', sector: 'Fintech', valuation: 7.5, year: 2021 },
 ];
+
+export const STATE_DEMOGRAPHICS = {
+  MH: { population: '12.5 Cr', literacy: '82.3%' },
+  UP: { population: '24.1 Cr', literacy: '67.7%' },
+  BR: { population: '12.4 Cr', literacy: '61.8%' },
+  WB: { population: '10.1 Cr', literacy: '76.3%' },
+  MP: { population: '8.5 Cr', literacy: '69.3%' },
+  TN: { population: '7.7 Cr', literacy: '80.3%' },
+  RJ: { population: '8.1 Cr', literacy: '66.1%' },
+  KA: { population: '6.7 Cr', literacy: '75.4%' },
+  GJ: { population: '7.0 Cr', literacy: '78.0%' },
+  AP: { population: '5.3 Cr', literacy: '67.0%' },
+  TS: { population: '3.9 Cr', literacy: '72.8%' },
+  KL: { population: '3.5 Cr', literacy: '96.2%' },
+  DL: { population: '2.0 Cr', literacy: '86.2%' },
+  PB: { population: '3.0 Cr', literacy: '75.8%' },
+  HR: { population: '2.8 Cr', literacy: '75.5%' },
+  SK: { population: '6.9 L', literacy: '81.4%' },
+  MZ: { population: '12.4 L', literacy: '91.6%' },
+  GA: { population: '15.8 L', literacy: '88.7%' },
+  HP: { population: '75.0 L', literacy: '83.8%' },
+};
+
+export const STATE_AGRICULTURE = {
+  PB: ['Wheat', 'Rice', 'Cotton'],
+  HR: ['Wheat', 'Mustard', 'Bajra'],
+  UP: ['Sugarcane', 'Wheat', 'Rice'],
+  MP: ['Soybean', 'Wheat', 'Pulses'],
+  MH: ['Sugarcane', 'Cotton', 'Onion'],
+  KA: ['Coffee', 'Rice', 'Ragi'],
+  AP: ['Rice', 'Chilli', 'Cotton'],
+  WB: ['Rice', 'Jute', 'Tea'],
+  RJ: ['Mustard', 'Bajra', 'Wheat'],
+  GJ: ['Cotton', 'Groundnut', 'Castor'],
+  KL: ['Rubber', 'Spices', 'Coconut'],
+  TN: ['Rice', 'Cotton', 'Sugarcane'],
+};
+
+export const SAFE_REGIONS = ['KL', 'SK', 'MZ', 'GA', 'HP', 'PY', 'LD', 'AN', 'CH', 'DD'];
+

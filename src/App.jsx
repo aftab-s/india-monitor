@@ -63,7 +63,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-dark-950">
+    <div className="h-screen w-screen flex flex-col overflow-hidden bg-black text-white">
       <Header currentTime={currentTime} selectedState={selectedState} onBack={handleBack} />
       
       <main className="flex-1 flex flex-col overflow-hidden relative">

@@ -5,24 +5,24 @@ export default function Panel({ title, icon: Icon, children, className = '', bad
   const [collapsed, setCollapsed] = useState(false);
 
   const badgeColors = {
-    accent: 'bg-accent/10 text-accent border-accent/20',
-    warning: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    danger: 'bg-red-500/10 text-red-400 border-red-500/20',
-    info: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    live: 'bg-green-500/10 text-green-400 border-green-500/20',
+    accent: 'bg-transparent text-accent border-accent',
+    warning: 'bg-transparent text-amber-500 border-amber-500',
+    danger: 'bg-transparent text-red-500 border-red-500',
+    info: 'bg-transparent text-blue-400 border-blue-400',
+    live: 'bg-transparent text-up border-up',
   };
 
   const colSpanClass = span === 2 ? 'col-span-1 md:col-span-2' : span === 3 ? 'col-span-1 md:col-span-3' : '';
 
   return (
-    <div className={`glass-panel rounded-lg overflow-hidden animate-slide-up ${colSpanClass} ${className}`}>
+    <div className={`bg-black border border-dark-500 rounded-none overflow-hidden animate-slide-up ${colSpanClass} ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-dark-500/30">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-dark-500">
         <div className="flex items-center gap-2 min-w-0">
           {Icon && <Icon size={13} className="text-gray-500 flex-shrink-0" />}
-          <h3 className="text-[11px] font-semibold tracking-wider text-gray-300 uppercase truncate">{title}</h3>
+          <h3 className="text-[11px] font-mono tracking-widest text-gray-300 uppercase truncate">{title}</h3>
           {badge && (
-            <span className={`text-[9px] font-semibold tracking-wider px-1.5 py-0.5 rounded-full border ${badgeColors[badgeColor]}`}>
+            <span className={`text-[9px] font-mono tracking-widest uppercase px-1.5 py-0.5 border ${badgeColors[badgeColor]}`}>
               {badge}
             </span>
           )}
@@ -94,9 +94,9 @@ export function MiniBar({ value, max, color = '#00ff88', label }) {
   const pct = Math.min(100, (value / max) * 100);
   return (
     <div className="flex items-center gap-2 py-0.5">
-      {label && <span className="text-[10px] text-gray-500 w-16 truncate">{label}</span>}
-      <div className="flex-1 h-1.5 bg-dark-600 rounded-full overflow-hidden">
-        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
+      {label && <span className="text-[10px] font-mono uppercase tracking-widest text-gray-500 w-16 truncate">{label}</span>}
+      <div className="flex-1 h-1.5 bg-dark-600 rounded-none overflow-hidden border border-dark-500">
+        <div className="h-full rounded-none transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: color }} />
       </div>
       <span className="text-[10px] font-mono text-gray-400 w-8 text-right">{Math.round(pct)}%</span>
     </div>
@@ -110,12 +110,12 @@ export function NewsItem({ title, source, time, url }) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="block py-2 border-b border-dark-600/30 last:border-0 hover:bg-dark-700/30 -mx-1 px-1 rounded transition-colors"
+      className="block py-2 border-b border-dark-500 last:border-0 hover:bg-dark-600 -mx-1 px-1 rounded-none transition-colors"
     >
-      <p className="text-[11px] text-gray-300 leading-relaxed line-clamp-2">{title}</p>
+      <p className="text-[11px] text-gray-300 leading-relaxed line-clamp-2 font-mono uppercase">{title}</p>
       <div className="flex items-center gap-2 mt-1">
-        {source && <span className="text-[9px] text-accent/70 font-medium">{source}</span>}
-        {time && <span className="text-[9px] text-gray-600">{time}</span>}
+        {source && <span className="text-[9px] text-accent font-mono tracking-widest uppercase">{source}</span>}
+        {time && <span className="text-[9px] text-gray-600 font-mono uppercase tracking-widest">{time}</span>}
       </div>
     </a>
   );
