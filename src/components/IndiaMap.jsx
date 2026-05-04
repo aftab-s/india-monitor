@@ -1,10 +1,10 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import { STATES, REGION_COLORS } from '../data/constants';
-import { Layers, ZoomIn, ZoomOut } from 'lucide-react';
+import { Layers, MapPin } from 'lucide-react';
 
-const INDIA_GEOJSON_URL = 'https://raw.githubusercontent.com/civictech-India/INDIA-GEO-JSON-Datasets/master/india_states.json';
-const INDIA_GEOJSON_FALLBACK = 'https://raw.githubusercontent.com/geohacker/india/master/state/india_state.geojson';
+const INDIA_GEOJSON_URL = 'https://raw.githubusercontent.com/geohacker/india/master/state/india_state.geojson';
+const INDIA_GEOJSON_FALLBACK = 'https://raw.githubusercontent.com/datameet/maps/master/States/Admin2.json';
 
 // Map state codes from various GeoJSON sources to our codes
 const STATE_NAME_TO_CODE = {};
@@ -20,35 +20,37 @@ const EXTRA_MAPPINGS = {
   'andhra pradesh': 'AP', 'arunachal pradesh': 'AR', 'assam': 'AS',
   'bihar': 'BR', 'chandigarh': 'CH', 'chhattisgarh': 'CT', 'chattisgarh': 'CT',
   'dadra & nagar haveli': 'DD', 'daman & diu': 'DD', 'dadra and nagar haveli and daman and diu': 'DD',
-  'dadra & nagar haveli and daman & diu': 'DD', 'dnhdd': 'DD',
   'delhi': 'DL', 'nct of delhi': 'DL', 'goa': 'GA', 'gujarat': 'GJ',
   'haryana': 'HR', 'himachal pradesh': 'HP', 'jammu & kashmir': 'JK',
   'jammu and kashmir': 'JK', 'jharkhand': 'JH', 'karnataka': 'KA',
-  'kerala': 'KL', 'ladakh': 'LA', 'lakshadweep': 'LD',
-  'madhya pradesh': 'MP', 'maharashtra': 'MH', 'manipur': 'MN',
-  'meghalaya': 'ML', 'mizoram': 'MZ', 'nagaland': 'NL',
-  'odisha': 'OR', 'orissa': 'OR', 'puducherry': 'PY', 'pondicherry': 'PY',
-  'punjab': 'PB', 'rajasthan': 'RJ', 'sikkim': 'SK',
-  'tamil nadu': 'TN', 'telangana': 'TS', 'tripura': 'TR',
-  'uttar pradesh': 'UP', 'uttarakhand': 'UK', 'uttaranchal': 'UK',
-  'west bengal': 'WB',
+  'kerala': 'KL', 'ladakh': 'LA', 'lakshadweep': 'LD', 'madhya pradesh': 'MP',
+  'maharashtra': 'MH', 'manipur': 'MN', 'meghalaya': 'ML', 'mizoram': 'MZ',
+  'nagaland': 'NL', 'odisha': 'OR', 'puducherry': 'PY', 'punjab': 'PB',
+  'rajasthan': 'RJ', 'sikkim': 'SK', 'tamil nadu': 'TN', 'telangana': 'TS',
+  'tripura': 'TR', 'uttar pradesh': 'UP', 'uttarakhand': 'UK', 'west bengal': 'WB'
 };
 
-Object.assign(STATE_NAME_TO_CODE, EXTRA_MAPPINGS);
-
-function getStateCode(props) {
-  const name = (props.NAME_1 || props.name || props.st_nm || props.state || '').toLowerCase().trim();
-  return STATE_NAME_TO_CODE[name] || null;
+function getStateCode(name) {
+  if (!name) return null;
+  const normalized = name.toLowerCase().trim();
+  if (EXTRA_MAPPINGS[normalized]) return EXTRA_MAPPINGS[normalized];
+  return STATE_NAME_TO_CODE[normalized] || null;
 }
 
-export default function IndiaMap({ onStateSelect, selectedState }) {
+export default function IndiaMap({ 
+  onStateSelect, 
+  selectedState, 
+  isPanelMode = false 
+}) {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
   const popupRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [hoveredState, setHoveredState] = useState(null);
+
 
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+    if (mapRef.current || !mapContainerRef.current) return;
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
@@ -59,201 +61,77 @@ export default function IndiaMap({ onStateSelect, selectedState }) {
           {
             id: 'background',
             type: 'background',
-            paint: { 'background-color': '#000000' }
+            paint: { 'background-color': '#080808' }
           }
-        ],
-        glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf'
+        ]
       },
-      center: [82.5, 22.5],
-      zoom: 4.2,
-      minZoom: 3,
-      maxZoom: 8,
+      center: [78.9629, 22.5937],
+      zoom: 3.8,
       attributionControl: false,
-      dragRotate: false,
-      pitchWithRotate: false,
+      scrollZoom: true,
+      dragPan: true,
     });
 
     mapRef.current = map;
 
-    map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
-
     map.on('load', async () => {
       try {
-        // Try primary GeoJSON source, fallback to alternative
-        let geojson = null;
-        for (const url of [INDIA_GEOJSON_URL, INDIA_GEOJSON_FALLBACK]) {
-          try {
-            const res = await fetch(url);
-            if (res.ok) {
-              geojson = await res.json();
-              break;
-            }
-          } catch (e) {
-            console.warn(`Failed to fetch GeoJSON from ${url}:`, e);
+        let response = await fetch(INDIA_GEOJSON_URL);
+        let data;
+        
+        if (response.ok) {
+          data = await response.json();
+        }
+
+        // Fallback if primary fails or returns invalid data
+        if (!data || !data.features) {
+          console.warn('Primary GeoJSON failed, trying fallback...');
+          const fallbackRes = await fetch(INDIA_GEOJSON_FALLBACK);
+          if (fallbackRes.ok) {
+            data = await fallbackRes.json();
           }
         }
 
-        if (!geojson) {
-          console.error('Failed to load India GeoJSON');
-          setMapLoaded(true);
-          return;
+        if (!data || !data.features) {
+          throw new Error('Could not load map data from any source');
         }
 
-        // Enrich features with state codes and region colors
-        geojson.features = geojson.features.map(f => {
-          const code = getStateCode(f.properties);
-          const stateData = code ? STATES.find(s => s.code === code) : null;
+        // Add state codes and colors to features
+        data.features = data.features.map((feature, index) => {
+          const name = feature.properties.ST_NM || feature.properties.NAME_1 || feature.properties.name;
+          const code = getStateCode(name);
+          const stateInfo = STATES.find(s => s.code === code);
+          const color = stateInfo ? REGION_COLORS[stateInfo.region] : '#333';
+          
+          // Use a numeric ID for better feature-state compatibility
+          const numericId = code ? (code.charCodeAt(0) * 100 + code.charCodeAt(1)) : (index + 1000);
+
           return {
-            ...f,
+            ...feature,
+            id: numericId,
             properties: {
-              ...f.properties,
-              stateCode: code || 'XX',
-              stateName: stateData?.name || f.properties.NAME_1 || f.properties.name || f.properties.st_nm || 'Unknown',
-              capital: stateData?.capital || '',
-              region: stateData?.region || 'Unknown',
-              fillColor: stateData ? (REGION_COLORS[stateData.region] || '#1a3a2a') : '#1a3a2a',
+              ...feature.properties,
+              code,
+              name,
+              capital: stateInfo?.capital || 'N/A',
+              fillColor: color,
+              region: stateInfo?.region || 'Unknown'
             }
           };
         });
 
-        map.addSource('india-states', {
-          type: 'geojson',
-          data: geojson,
-        });
+        // Add Sources
+        map.addSource('india-states', { type: 'geojson', data });
 
-        // State fill layer — extremely subtle, near-invisible fill
-        map.addLayer({
-          id: 'state-fill',
-          type: 'fill',
-          source: 'india-states',
-          paint: {
-            'fill-color': [
-              'case',
-              ['boolean', ['feature-state', 'hover'], false],
-              '#ffffff',
-              '#111111',
-            ],
-            'fill-opacity': [
-              'case',
-              ['boolean', ['feature-state', 'hover'], false],
-              0.08,
-              0.4,
-            ],
-          },
-        });
-
-        // State border layer — crisp white wireframe lines
-        map.addLayer({
-          id: 'state-border',
-          type: 'line',
-          source: 'india-states',
-          paint: {
-            'line-color': [
-              'case',
-              ['boolean', ['feature-state', 'hover'], false],
-              '#ffffff',
-              '#333333',
-            ],
-            'line-width': [
-              'case',
-              ['boolean', ['feature-state', 'hover'], false],
-              1.5,
-              0.6,
-            ],
-            'line-dasharray': [3, 2],
-          },
-        });
-
-        // State labels
-        map.addLayer({
-          id: 'state-labels',
-          type: 'symbol',
-          source: 'india-states',
-          layout: {
-            'text-field': ['get', 'stateCode'],
-            'text-size': 9,
-            'text-font': ['Noto Sans Regular'],
-            'text-allow-overlap': false,
-            'text-ignore-placement': false,
-          },
-          paint: {
-            'text-color': '#555555',
-            'text-halo-color': '#000000',
-            'text-halo-width': 1,
-          },
-          minzoom: 4.5,
-        });
-
-        // Hover interactions
-        let hoveredId = null;
-
-        map.on('mousemove', 'state-fill', (e) => {
-          if (e.features.length === 0) return;
-          
-          map.getCanvas().style.cursor = 'pointer';
-          
-          if (hoveredId !== null) {
-            map.setFeatureState({ source: 'india-states', id: hoveredId }, { hover: false });
-          }
-          
-          hoveredId = e.features[0].id;
-          map.setFeatureState({ source: 'india-states', id: hoveredId }, { hover: true });
-
-          const props = e.features[0].properties;
-          const html = `
-            <div class="text-center">
-              <div class="font-semibold text-white text-sm mb-1">${props.stateName}</div>
-              ${props.capital ? `<div class="text-gray-400 text-xs">Capital: ${props.capital}</div>` : ''}
-              <div class="text-xs mt-1" style="color: ${props.fillColor}">${props.region}</div>
-              <div class="text-[10px] text-gray-500 mt-1.5">Click to explore →</div>
-            </div>
-          `;
-
-          if (!popupRef.current) {
-            popupRef.current = new maplibregl.Popup({
-              closeButton: false,
-              closeOnClick: false,
-              offset: 15,
-            });
-          }
-
-          popupRef.current.setLngLat(e.lngLat).setHTML(html).addTo(map);
-        });
-
-        map.on('mouseleave', 'state-fill', () => {
-          map.getCanvas().style.cursor = '';
-          if (hoveredId !== null) {
-            map.setFeatureState({ source: 'india-states', id: hoveredId }, { hover: false });
-          }
-          hoveredId = null;
-          popupRef.current?.remove();
-        });
-
-        // Click to select state
-        map.on('click', 'state-fill', (e) => {
-          if (e.features.length === 0) return;
-          const code = e.features[0].properties.stateCode;
-          const state = STATES.find(s => s.code === code);
-          if (state) {
-            onStateSelect(state);
-          }
-        });
-
-        // Add dense grid lines for technical look
+        // Add Tech Grid Source (Subtle Dot Matrix)
         const gridFeatures = [];
-        for (let lng = 60; lng <= 100; lng += 2.5) {
-          gridFeatures.push({
-            type: 'Feature',
-            geometry: { type: 'LineString', coordinates: [[lng, 5], [lng, 40]] }
-          });
+        for (let lng = 68; lng <= 98; lng += 2) {
+          gridFeatures.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: [[lng, 8], [lng, 38]] } });
         }
-        for (let lat = 5; lat <= 40; lat += 2.5) {
-          gridFeatures.push({
-            type: 'Feature',
-            geometry: { type: 'LineString', coordinates: [[60, lat], [105, lat]] }
-          });
+        for (let lat = 8; lat <= 38; lat += 2) {
+          gridFeatures.push({ type: 'Feature', geometry: { type: 'LineString', coordinates: [[68, lat], [98, lat]] } });
         }
-
+        
         map.addSource('tech-grid', {
           type: 'geojson',
           data: { type: 'FeatureCollection', features: gridFeatures }
@@ -263,64 +141,114 @@ export default function IndiaMap({ onStateSelect, selectedState }) {
           id: 'tech-grid',
           type: 'line',
           source: 'tech-grid',
+          layout: {
+            visibility: 'visible'
+          },
           paint: {
-            'line-color': '#1a1a1a',
+            'line-color': '#2a2a2a',
             'line-width': 0.5,
-            'line-dasharray': [1, 4],
+            'line-dasharray': [2, 6],
           }
-        }, 'state-fill');
+        });
 
-        // Major city nodes
-        map.addSource('city-nodes', {
-          type: 'geojson',
-          data: {
-            type: 'FeatureCollection',
-            features: [
-              { type: 'Feature', geometry: { type: 'Point', coordinates: [77.1025, 28.7041] }, properties: { name: 'DELHI' } },
-              { type: 'Feature', geometry: { type: 'Point', coordinates: [72.8777, 19.0760] }, properties: { name: 'MUMBAI' } },
-              { type: 'Feature', geometry: { type: 'Point', coordinates: [77.5946, 12.9716] }, properties: { name: 'BENGALURU' } },
-              { type: 'Feature', geometry: { type: 'Point', coordinates: [88.3639, 22.5726] }, properties: { name: 'KOLKATA' } },
-              { type: 'Feature', geometry: { type: 'Point', coordinates: [80.2707, 13.0827] }, properties: { name: 'CHENNAI' } },
+        // ── State base fill ────────────────────────────
+        map.addLayer({
+          id: 'state-fill-base',
+          type: 'fill',
+          source: 'india-states',
+          paint: {
+            'fill-color': ['get', 'fillColor'],
+            'fill-opacity': 0.75,
+          }
+        });
+
+        // ── Glow effect on hover ────────────────────────
+        map.addLayer({
+          id: 'state-glow',
+          type: 'fill',
+          source: 'india-states',
+          paint: {
+            'fill-color': '#ff0033',
+            'fill-opacity': [
+              'case',
+              ['boolean', ['feature-state', 'hover'], false],
+              0.25,
+              0
             ]
           }
         });
 
+        // ── State borders ──────────────────────────────
         map.addLayer({
-          id: 'city-nodes',
-          type: 'circle',
-          source: 'city-nodes',
+          id: 'state-borders',
+          type: 'line',
+          source: 'india-states',
           paint: {
-            'circle-radius': 3,
-            'circle-color': '#ffffff',
-            'circle-stroke-width': 2,
-            'circle-stroke-color': 'rgba(255,255,255,0.1)',
+            'line-color': '#2a2a2a',
+            'line-width': 1,
+            'line-opacity': 0.8
           }
         });
 
+        // ── Border highlight on hover ──────────────────
         map.addLayer({
-          id: 'city-labels',
-          type: 'symbol',
-          source: 'city-nodes',
-          layout: {
-            'text-field': ['get', 'name'],
-            'text-font': ['Noto Sans Regular'],
-            'text-size': 8,
-            'text-offset': [0, 1.5],
-            'text-anchor': 'top',
-          },
+          id: 'state-border-highlight',
+          type: 'line',
+          source: 'india-states',
           paint: {
-            'text-color': '#888888',
-            'text-halo-color': '#000000',
-            'text-halo-width': 1,
+            'line-color': '#ff0033',
+            'line-width': [
+              'case',
+              ['boolean', ['feature-state', 'hover'], false],
+              3,
+              0
+            ],
+            'line-opacity': 1,
+            'line-blur': 0.5
           }
         });
 
-        // Assign feature IDs for hover state
-        const src = map.getSource('india-states');
-        if (src && src._data && src._data.features) {
-          src._data.features.forEach((f, i) => { f.id = i; });
-          src.setData(src._data);
-        }
+        // ── Interaction Logic ───────────────────────────
+        let hoveredId = null;
+
+        map.on('mousemove', 'state-fill-base', (e) => {
+          if (e.features.length > 0) {
+            if (hoveredId !== null) {
+              map.setFeatureState({ source: 'india-states', id: hoveredId }, { hover: false });
+            }
+            hoveredId = e.features[0].id;
+            map.setFeatureState({ source: 'india-states', id: hoveredId }, { hover: true });
+            
+            const props = e.features[0].properties;
+            setHoveredState({
+              name: props.name,
+              code: props.code,
+              capital: props.capital,
+              region: props.region,
+              color: props.fillColor
+            });
+            
+            map.getCanvas().style.cursor = 'pointer';
+          }
+        });
+
+        map.on('mouseleave', 'state-fill-base', () => {
+          if (hoveredId !== null) {
+            map.setFeatureState({ source: 'india-states', id: hoveredId }, { hover: false });
+          }
+          hoveredId = null;
+          setHoveredState(null);
+          map.getCanvas().style.cursor = '';
+        });
+
+        map.on('click', 'state-fill-base', (e) => {
+          const props = e.features[0].properties;
+          if (props.code) {
+            const stateObj = STATES.find(s => s.code === props.code);
+            if (stateObj) onStateSelect(stateObj);
+          }
+        });
+
       } catch (err) {
         console.error('Error during map initialization:', err);
       } finally {
@@ -336,52 +264,73 @@ export default function IndiaMap({ onStateSelect, selectedState }) {
   }, [onStateSelect]);
 
   return (
-    <div className="relative w-full h-full bg-black">
-      {/* Map title bar */}
-      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 py-2 bg-black border-b border-dark-500">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-semibold tracking-[2px] text-gray-400 uppercase">National Overview</span>
-          <span className="text-[9px] text-gray-600">·</span>
-          <span className="text-[9px] text-gray-600">36 States & UTs</span>
+    <div className={`relative w-full overflow-hidden bg-black transition-all duration-300 ${isPanelMode ? 'h-full' : 'h-[45vh] min-h-[280px]'}`}>
+      
+      {/* ── Glassmorphic floating info bar ────────────────────────────── */}
+      <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between pointer-events-none">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-black/60 backdrop-blur-md border border-white/10 rounded-none pointer-events-auto">
+          <div className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+          <span className="text-[10px] font-mono tracking-[2px] text-gray-300 uppercase">
+            {isPanelMode ? 'GEOINT FEED' : 'National Overview'}
+          </span>
+          {hoveredState && (
+            <>
+              <span className="text-[9px] text-gray-600">·</span>
+              <div className="flex items-center gap-1.5 animate-fade-in">
+                <div className="w-1.5 h-1.5 rounded-none" style={{ backgroundColor: hoveredState.color }} />
+                <span className="text-[10px] font-mono text-white uppercase tracking-widest">{hoveredState.name}</span>
+                <span className="text-[9px] text-gray-600">·</span>
+                <span className="text-[9px] font-mono text-gray-400 tracking-widest uppercase">HQ: {hoveredState.capital}</span>
+                <span className="text-[9px] text-gray-600">·</span>
+                <span className="text-[9px] font-mono text-accent tracking-widest">{hoveredState.region}</span>
+              </div>
+            </>
+          )}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 text-[9px] text-gray-600">
-            <Layers size={10} />
-            <span>LAYERS</span>
-          </div>
-        </div>
+
       </div>
 
-      {/* Map container */}
-      <div ref={mapContainerRef} className="w-full h-full dot-matrix relative overflow-hidden">
-        <div className="scanline" />
-      </div>
+      {/* ── Map container ────────────────────────────────────────────── */}
+      <div ref={mapContainerRef} className="w-full h-full min-h-[300px]" />
 
-      {/* Loading overlay */}
+      {/* ── Glassmorphic vignette overlay ────────────────────────────── */}
+      <div className="absolute inset-0 pointer-events-none z-[1]"
+        style={{
+          background: 'radial-gradient(ellipse at 50% 50%, transparent 65%, rgba(0,0,0,0.5) 100%)',
+        }} />
+
+      {/* ── Loading overlay ───────────────────────────────────────────── */}
       {!mapLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black z-20">
-          <div className="flex flex-col items-center gap-3">
-            <div className="relative w-16 h-16">
-              <div className="absolute inset-0 border-2 border-accent/20 rounded-full" />
-              <div className="absolute inset-0 border-2 border-transparent border-t-accent rounded-full animate-spin" />
-              <div className="absolute inset-2 border border-accent/10 rounded-full" />
+        <div className="absolute inset-0 flex items-center justify-center z-20 bg-black">
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative w-14 h-14">
+              <div className="absolute inset-0 border border-accent/20 rounded-full" />
+              <div className="absolute inset-0 border border-transparent border-t-accent rounded-full animate-spin" />
+              <div className="absolute inset-[5px] border border-accent/10 rounded-full" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <MapPin size={14} className="text-accent" />
+              </div>
             </div>
-            <span className="text-[10px] tracking-[3px] text-gray-500 uppercase">Loading Map</span>
+            <span className="text-[9px] font-mono tracking-[4px] text-gray-600 uppercase">Rendering Map Data</span>
           </div>
         </div>
       )}
 
-      {/* Legend */}
+      {/* ── Region legend (glassmorphic pill) ────────────────────────── */}
       {mapLoaded && (
-        <div className="absolute bottom-8 left-3 z-10 flex flex-wrap gap-x-3 gap-y-1 px-3 py-2 bg-black border border-dark-500">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-4 px-4 py-2 bg-black/60 backdrop-blur-md border border-white/10">
           {Object.entries(REGION_COLORS).map(([region, color]) => (
             <div key={region} className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-none" style={{ backgroundColor: color }} />
-              <span className="text-[9px] text-gray-500 font-mono tracking-widest uppercase">{region}</span>
+              <div className="w-1.5 h-1.5 rounded-none flex-shrink-0" style={{ backgroundColor: color }} />
+              <span className="text-[8px] font-mono tracking-widest text-gray-500 uppercase">{region}</span>
             </div>
           ))}
         </div>
       )}
+
+      {/* ── Bottom border / divider (map → panels) ── */}
+      <div className="absolute bottom-0 left-0 right-0 z-20 pointer-events-none h-[2px]"
+        style={{ background: 'linear-gradient(to right, transparent, rgba(255,0,51,0.5) 20%, rgba(255,0,51,0.5) 80%, transparent)' }} />
     </div>
   );
 }

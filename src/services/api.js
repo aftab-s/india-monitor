@@ -30,13 +30,20 @@ export async function fetchStateWeather(locationName, fallbackLat, fallbackLng) 
   return fetchWithCache(`india:weather:${locationName}`, async () => {
     let lat = fallbackLat;
     let lng = fallbackLng;
-    try {
-      const geo = await fetchJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(locationName)}&count=1&language=en&format=json`);
-      if (geo.results && geo.results.length > 0) {
-        lat = geo.results[0].latitude;
-        lng = geo.results[0].longitude;
+
+    // Only geocode if we don't have valid coordinates or if it's a generic request
+    if (!lat || !lng) {
+      try {
+        const geo = await fetchJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(locationName + ' India')}&count=1&language=en&format=json`);
+        if (geo.results && geo.results.length > 0) {
+          lat = geo.results[0].latitude;
+          lng = geo.results[0].longitude;
+        }
+      } catch(e) {
+        console.warn(`[Weather API] Geocoding failed for ${locationName}, using fallbacks.`);
       }
-    } catch(e) {}
+    }
+
 
     const data = await fetchJSON(
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code,apparent_temperature&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=Asia/Kolkata&forecast_days=5`
@@ -384,13 +391,17 @@ export async function fetchAirQuality(locationName, fallbackLat, fallbackLng) {
   return fetchWithCache(`india:aqi:${locationName}`, async () => {
     let lat = fallbackLat;
     let lng = fallbackLng;
-    try {
-      const geo = await fetchJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(locationName)}&count=1&language=en&format=json`);
-      if (geo.results && geo.results.length > 0) {
-        lat = geo.results[0].latitude;
-        lng = geo.results[0].longitude;
-      }
-    } catch(e) {}
+
+    if (!lat || !lng) {
+      try {
+        const geo = await fetchJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(locationName + ' India')}&count=1&language=en&format=json`);
+        if (geo.results && geo.results.length > 0) {
+          lat = geo.results[0].latitude;
+          lng = geo.results[0].longitude;
+        }
+      } catch(e) {}
+    }
+
 
     try {
       const data = await fetchJSON(

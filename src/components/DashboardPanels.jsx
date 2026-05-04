@@ -1,11 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Responsive, useContainerWidth } from 'react-grid-layout';
+import useAutoRefresh from '../hooks/useAutoRefresh';
+
+import '/node_modules/react-grid-layout/css/styles.css';
+import '/node_modules/react-resizable/css/styles.css';
+
+
+
+
+
+
+
 import Panel, { StatValue, MiniBar, NewsItem } from './Panel';
+
 import {
   TrendingUp, DollarSign, BarChart3, Landmark, Globe, CloudRain, Wind, 
   Flame, ShieldAlert, Swords, Vote, Newspaper, Cpu, Zap, Ship, 
   Building2, Wheat, Droplets, ThermometerSun, Activity, Radio, Podcast,
-  CircuitBoard, Factory, Banknote, Scale, Heart, AlertTriangle, ShieldCheck, Film
+  CircuitBoard, Factory, Banknote, Scale, Heart, AlertTriangle, ShieldCheck, Film, MapPin, ExternalLink
 } from 'lucide-react';
+
 import {
   fetchWeather, fetchEarthquakes, fetchMacroData, fetchTradeData,
   fetchExchangeRates, fetchNews, fetchGdeltIntel, fetchMarketIndices,
@@ -15,56 +29,132 @@ import {
 } from '../services/api';
 import { POPULAR_MOVIES } from '../data/constants';
 import LiveStreamPanel from './LiveStreamPanel';
+import IndiaMap from './IndiaMap';
 
-export default function DashboardPanels() {
+
+const INITIAL_LAYOUTS = {
+  lg: [
+    { i: 'map', x: 0, y: 0, w: 2, h: 22 },
+    { i: 'weather', x: 3, y: 14, w: 2, h: 8 },
+    { i: 'aqi', x: 2, y: 0, w: 1, h: 6 },
+    { i: 'news', x: 3, y: 22, w: 2, h: 8 },
+    { i: 'stream1', x: 3, y: 6, w: 1, h: 8 },
+    { i: 'stream2', x: 4, y: 6, w: 1, h: 8 },
+    { i: 'stream3', x: 2, y: 6, w: 1, h: 8 },
+    { i: 'markets', x: 3, y: 0, w: 1, h: 6 },
+    { i: 'currency', x: 4, y: 0, w: 1, h: 6 },
+    { i: 'sectors', x: 2, y: 51, w: 1, h: 9 },
+    { i: 'rbi', x: 2, y: 36, w: 1, h: 6 },
+    { i: 'intel', x: 0, y: 28, w: 1, h: 5 },
+    { i: 'macro', x: 1, y: 22, w: 1, h: 6 },
+    { i: 'politics', x: 2, y: 14, w: 1, h: 8 },
+    { i: 'security', x: 0, y: 54, w: 2, h: 6 },
+    { i: 'infra', x: 0, y: 22, w: 1, h: 6 },
+    { i: 'trade', x: 2, y: 22, w: 1, h: 7 },
+    { i: 'reservoir', x: 3, y: 36, w: 2, h: 8 },
+    { i: 'energy', x: 3, y: 30, w: 2, h: 6 },
+    { i: 'renewables', x: 2, y: 29, w: 1, h: 7 },
+    { i: 'tech', x: 0, y: 33, w: 1, h: 5 },
+    { i: 'unicorn', x: 1, y: 28, w: 1, h: 10 },
+    { i: 'movies', x: 0, y: 38, w: 1, h: 7 },
+    { i: 'borders', x: 2, y: 42, w: 1, h: 9 },
+    { i: 'cyber', x: 3, y: 51, w: 2, h: 9 },
+    { i: 'disasters', x: 0, y: 45, w: 2, h: 9 },
+    { i: 'mandi', x: 1, y: 38, w: 1, h: 7 },
+    { i: 'elections', x: 3, y: 44, w: 2, h: 7 },
+    { i: 'system', x: 0, y: 60, w: 5, h: 7 },
+  ]
+};
+
+export default function DashboardPanels({ 
+  liveStreamRef, 
+  onStateSelect, 
+  selectedState, 
+  showGrid, 
+  onToggleLayers 
+}) {
+
+  const { containerRef, width } = useContainerWidth({ initialWidth: 1200 });
+  
+  const [layouts, setLayouts] = useState(() => {
+    const saved = localStorage.getItem('india-monitor-layout');
+    return saved ? JSON.parse(saved) : INITIAL_LAYOUTS;
+  });
+
+  const onLayoutChange = (currentLayout, allLayouts) => {
+    setLayouts(allLayouts);
+    localStorage.setItem('india-monitor-layout', JSON.stringify(allLayouts));
+  };
+
+  const panels = useMemo(() => [
+    { id: 'map', component: (
+      <Panel title="Geospatial Intelligence (GeoInt)" icon={MapPin} badge="Interactive" badgeColor="info" className="h-full">
+        <IndiaMap 
+          onStateSelect={onStateSelect} 
+          selectedState={selectedState} 
+          showGrid={showGrid} 
+          onToggleLayers={onToggleLayers}
+          isPanelMode={true} // New prop to hide internal title bar
+        />
+      </Panel>
+    )},
+    { id: 'weather', component: <WeatherPanel /> },
+
+    { id: 'aqi', component: <AirQualityPanel /> },
+    { id: 'news', component: <NewsPanel /> },
+    { id: 'stream1', component: <LiveStreamPanel title="NDTV India" youtubeId="https://www.youtube.com/live/p8yZdGjqfxg?si=3DwigqylYb1q5yVp" /> },
+    { id: 'stream2', component: <LiveStreamPanel title="India Today" youtubeId="https://www.youtube.com/live/76-f6i4YvmI?si=D7xg4NDteFhj507e" /> },
+    { id: 'stream3', component: <LiveStreamPanel title="Republic Bharat" youtubeId="https://www.youtube.com/live/6qbpkpYqLQk?si=6J6ur9UBvLlHS2IY" /> },
+    { id: 'markets', component: <MarketsPanel /> },
+    { id: 'currency', component: <CurrencyPanel /> },
+    { id: 'sectors', component: <SectorsPanel /> },
+    { id: 'rbi', component: <RbiPanel /> },
+    { id: 'intel', component: <IntelPanel /> },
+    { id: 'macro', component: <MacroPanel /> },
+    { id: 'politics', component: <PoliticsPanel /> },
+    { id: 'security', component: <SecurityPanel /> },
+    { id: 'infra', component: <InfraPanel /> },
+    { id: 'trade', component: <TradePanel /> },
+    { id: 'reservoir', component: <ReservoirPanel /> },
+    { id: 'energy', component: <EnergyPanel /> },
+    { id: 'renewables', component: <RenewablesPanel /> },
+    { id: 'tech', component: <TechPanel /> },
+    { id: 'unicorn', component: <UnicornPanel /> },
+    { id: 'movies', component: <MoviesPanel /> },
+    { id: 'borders', component: <BordersPanel /> },
+    { id: 'cyber', component: <CyberSecurityPanel /> },
+    { id: 'disasters', component: <DisastersPanel /> },
+    { id: 'mandi', component: <MandiPanel /> },
+    { id: 'elections', component: <ElectionsPanel /> },
+    { id: 'system', component: <SystemInfoPanel /> },
+  ], []);
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-1 p-1">
-      {/* Critical Monitoring (Top Row) */}
-      <WeatherPanel />
-      <AirQualityPanel />
-      <NewsPanel />
-      
-      {/* Live Media Streams */}
-      <LiveStreamPanel title="NDTV India" youtubeId="https://www.youtube.com/live/p8yZdGjqfxg?si=3DwigqylYb1q5yVp" />
-      <LiveStreamPanel title="India Today" youtubeId="https://www.youtube.com/live/76-f6i4YvmI?si=D7xg4NDteFhj507e" />
-      <LiveStreamPanel title="Republic Bharat" youtubeId="https://www.youtube.com/live/6qbpkpYqLQk?si=6J6ur9UBvLlHS2IY" />
+    <div ref={containerRef} className="px-6 md:px-12 py-4">
 
-      {/* Finance & Markets */}
-      <MarketsPanel />
-      <CurrencyPanel />
-      <SectorsPanel />
-      <RbiPanel />
-      
-      {/* Intelligence & Macro */}
-      <IntelPanel />
-      <MacroPanel />
-      <PoliticsPanel />
-      <SecurityPanel />
-      
-      {/* Infrastructure & Resources */}
-      <InfraPanel />
-      <TradePanel />
-      <ReservoirPanel />
-      <EnergyPanel />
-      <RenewablesPanel />
-      
-      {/* Corporate & Tech */}
-      <TechPanel />
-      <UnicornPanel />
-      <MoviesPanel />
-      
-      {/* Stability & Risk */}
-      <BordersPanel />
-      <CyberSecurityPanel />
-      <DisastersPanel />
-      <MandiPanel />
-      <ElectionsPanel />
-
-      {/* Meta Information */}
-      <SystemInfoPanel />
+      <Responsive
+        className="layout"
+        layouts={layouts}
+        width={width}
+        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+        cols={{ lg: 5, md: 4, sm: 2, xs: 1, xxs: 1 }}
+        rowHeight={30}
+        onLayoutChange={onLayoutChange}
+        dragConfig={{ handle: ".drag-handle", enabled: true }}
+        margin={[4, 4]}
+      >
+        {panels.map(panel => (
+          <div key={panel.id} ref={panel.id === 'stream1' ? liveStreamRef : null}>
+            {panel.component}
+          </div>
+        ))}
+      </Responsive>
     </div>
   );
 }
+
+
+
 
 // ─── Markets Panel ────────────────────────────────────────────
 function MarketsPanel() {
@@ -79,6 +169,8 @@ function MarketsPanel() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  useAutoRefresh(load, 60000); // Auto-refresh every 60 seconds
+
 
   return (
     <Panel title="Indian Markets" icon={TrendingUp} badge="LIVE" badgeColor="live" loading={loading} onRefresh={load}>
@@ -113,6 +205,8 @@ function CurrencyPanel() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  useAutoRefresh(load, 5 * 60000); // Auto-refresh every 5 minutes
+
 
   return (
     <Panel title="INR Exchange" icon={DollarSign} loading={loading} error={error} onRefresh={load}>
@@ -762,32 +856,40 @@ function ElectionsPanel() {
     </Panel>
   );
 }
-// ─── System Information Panel ──────────────────────────────────
+// ─── Dashboard Footer Panel ──────────────────────────────────
 function SystemInfoPanel() {
   return (
-    <Panel title="System Information" icon={Activity} badge="ONLINE" badgeColor="info" span={2}>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Data Refresh Intervals</div>
-          <div className="space-y-1">
-            <StatValue label="Financial Markets" value="10m" small />
-            <StatValue label="Weather & AQI" value="10m" small />
-            <StatValue label="Intelligence News" value="20m" small />
-            <StatValue label="Macro Data" value="6h" small />
-          </div>
-        </div>
-        <div>
-          <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-2">Technical Status</div>
-          <div className="space-y-1">
-            <StatValue label="Geocoding Engine" value="Active" small />
+    <Panel title="System Manifest" icon={Cpu} badge="VERSION 3.0" badgeColor="info" span={2}>
+      <div className="flex flex-col md:flex-row justify-between gap-6">
+        <div className="flex-1">
+          <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 border-b border-dark-500 pb-1">Core Architecture</div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <StatValue label="Geospatial" value="MapLibre" small />
             <StatValue label="LLM Intelligence" value="Groq v3.1" small />
-            <StatValue label="Map Engine" value="MapLibre" small />
+            <StatValue label="Icons" value="Lucide" small />
             <StatValue label="Aesthetic" value="Nothing OS" small />
           </div>
         </div>
-      </div>
-      <div className="mt-3 pt-2 border-t border-dark-500 text-[9px] text-gray-600 font-mono italic">
-        All data is fetched from live public APIs and processed in realtime.
+        <div className="flex-1">
+          <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-2 border-b border-dark-500 pb-1">Legal & Open Source</div>
+          <p className="text-[9px] text-gray-600 font-mono leading-relaxed mb-3 uppercase">
+            Real-time surveillance monitor and intelligence aggregator. All nodes operational. Utilizing public data feeds for non-classified strategic analysis.
+          </p>
+          <div className="flex items-center flex-wrap gap-3">
+             <a 
+               href="https://github.com/Aftab-S/India-Monitor" 
+               target="_blank" 
+               rel="noreferrer" 
+               className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white/5 border border-white/10 hover:border-accent hover:text-white transition-all text-[9px] font-mono tracking-widest text-gray-400 uppercase cursor-pointer group"
+             >
+                <ExternalLink size={10} className="group-hover:text-accent" />
+                <span>Github Repository</span>
+             </a>
+             <div className="flex items-center gap-1.5 px-2 py-1.5 border border-dark-500 text-[8px] font-mono text-gray-700 uppercase tracking-tighter">
+                BUILD_2026.05.04_REL_A
+             </div>
+          </div>
+        </div>
       </div>
     </Panel>
   );

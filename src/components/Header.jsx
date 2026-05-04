@@ -1,6 +1,18 @@
-import { Activity, ArrowLeft, Clock, Radio, Shield } from 'lucide-react';
+import { useState } from 'react';
+import { Activity, ArrowLeft, Clock, Radio, Shield, RotateCcw } from 'lucide-react';
+import ConfirmationModal from './ConfirmationModal';
 
-export default function Header({ currentTime, selectedState, onBack }) {
+export default function Header({ 
+  currentTime, 
+  selectedState, 
+  onBack, 
+  showAlerts, 
+  onToggleAlerts, 
+  onToggleLayers, 
+  onScrollToLive,
+  alertCount = 0
+}) {
+  const [showResetModal, setShowResetModal] = useState(false);
   const timeStr = currentTime.toLocaleTimeString('en-IN', { 
     timeZone: 'Asia/Kolkata', 
     hour: '2-digit', 
@@ -80,16 +92,51 @@ export default function Header({ currentTime, selectedState, onBack }) {
           {isMarketOpen ? 'MARKET OPEN' : 'MARKET CLOSED'}
         </div>
 
-        <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-0.5 bg-black border border-dark-500">
-          <Activity size={10} className="text-accent" />
-          <span className="text-[10px] text-gray-400 font-mono tracking-widest uppercase">LIVE</span>
-        </div>
+        <button 
+          onClick={onScrollToLive}
+          className="hidden lg:flex items-center gap-1.5 px-2.5 py-0.5 bg-black border border-dark-500 hover:border-accent hover:text-white transition-all cursor-pointer group"
+        >
+          <Activity size={10} className="text-accent group-hover:animate-pulse" />
+          <span className="text-[10px] text-gray-400 font-mono tracking-widest uppercase group-hover:text-white">LIVE</span>
+        </button>
 
-        <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-0.5 bg-black border border-amber-500">
-          <Shield size={10} className="text-amber-500" />
-          <span className="text-[10px] text-amber-500 font-mono tracking-widest uppercase">ALERT 3</span>
-        </div>
+        <button 
+          onClick={onToggleAlerts}
+          className={`hidden xl:flex items-center gap-1.5 px-2.5 py-0.5 bg-black border transition-all cursor-pointer ${
+            showAlerts ? 'border-accent text-white shadow-[0_0_10px_rgba(255,0,51,0.3)]' : 'border-amber-500 text-amber-500 hover:border-amber-400'
+          }`}
+        >
+          <Shield size={10} className={showAlerts ? 'text-accent' : 'text-amber-500'} />
+          <span className="text-[10px] font-mono tracking-widest uppercase">
+            {showAlerts ? 'CLOSE' : `ALERT ${alertCount}`}
+          </span>
+        </button>
+
+        <button 
+          onClick={() => setShowResetModal(true)}
+          className="flex items-center gap-1 px-2.5 py-0.5 bg-black border border-dark-600 hover:border-white hover:text-white text-gray-500 transition-all cursor-pointer group"
+          title="Reset All Layouts"
+        >
+          <RotateCcw size={10} className="group-hover:rotate-[-180deg] transition-transform duration-500" />
+          <span className="text-[10px] font-mono tracking-widest uppercase">RESET</span>
+        </button>
+
       </div>
+
+      <ConfirmationModal 
+        isOpen={showResetModal}
+        title="SYSTEM RESET"
+        message="Are you sure you want to reset all dashboard and state monitoring layouts to factory defaults? This action will reload the system."
+        onConfirm={() => {
+          localStorage.removeItem('india-monitor-layout');
+          localStorage.removeItem('india-monitor-state-layout');
+          window.location.reload();
+        }}
+        onCancel={() => setShowResetModal(false)}
+        confirmText="INITIATE RESET"
+        cancelText="ABORT"
+      />
     </header>
   );
 }
+

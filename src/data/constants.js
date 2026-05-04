@@ -40,15 +40,15 @@ export const STATES = [
 
 export const REGIONS = ['North', 'South', 'East', 'West', 'Central', 'Northeast', 'Island'];
 
-// Region colors — monochrome-compatible gray tones with subtle differentiation
+// Region colors — Nothing OS grey & red palette
 export const REGION_COLORS = {
-  North: '#808080',
-  South: '#606060',
-  East: '#999999',
-  West: '#707070',
-  Central: '#555555',
-  Northeast: '#8a8a8a',
-  Island: '#4a4a4a',
+  North:     '#5a5a5a',  // slightly lighter charcoal
+  South:     '#ff0033',  // bright accent red
+  East:      '#7a7a7a',  // lighter grey
+  West:      '#a32a2a',  // brighter crimson
+  Central:   '#4a4a4a',  // mid grey
+  Northeast: '#cc0033',  // brighter accent red
+  Island:    '#3a3a3a',  // dark grey
 };
 
 // API Endpoints (all free)

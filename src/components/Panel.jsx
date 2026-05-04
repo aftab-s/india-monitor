@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { RefreshCw, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { RefreshCw, ChevronDown, ChevronUp, AlertCircle, GripVertical } from 'lucide-react';
+
 
 export default function Panel({ title, icon: Icon, children, className = '', badge, badgeColor = 'accent', onRefresh, loading, error, span = 1 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -15,16 +16,27 @@ export default function Panel({ title, icon: Icon, children, className = '', bad
   const colSpanClass = span === 2 ? 'col-span-1 md:col-span-2' : span === 3 ? 'col-span-1 md:col-span-3' : '';
 
   return (
-    <div className={`bg-black border border-dark-500 rounded-none overflow-hidden animate-slide-up ${colSpanClass} ${className}`}>
+    <div className={`bg-black border border-dark-500 rounded-none overflow-hidden animate-slide-up flex flex-col transition-all duration-300 ${collapsed ? 'h-auto max-h-[34px]' : 'h-full'} ${className}`}>
+
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-dark-500">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-dark-500 bg-black/80 backdrop-blur-sm">
         <div className="flex items-center gap-2 min-w-0">
-          {Icon && <Icon size={13} className="text-gray-500 flex-shrink-0" />}
-          <h3 className="text-[11px] font-mono tracking-widest text-gray-300 uppercase truncate">{title}</h3>
-          {badge && (
+          <div className="drag-handle cursor-grab active:cursor-grabbing p-1 -ml-1 hover:text-gray-400 transition-colors">
+            <GripVertical size={12} className="text-gray-600" />
+          </div>
+          {Icon && <Icon size={13} className={`${collapsed ? 'text-accent' : 'text-gray-500'} flex-shrink-0`} />}
+
+          <h3 className={`text-[11px] font-mono tracking-widest uppercase truncate ${collapsed ? 'text-accent font-bold' : 'text-gray-300'}`}>{title}</h3>
+          {badge && !collapsed && (
             <span className={`text-[9px] font-mono tracking-widest uppercase px-1.5 py-0.5 border ${badgeColors[badgeColor]}`}>
               {badge}
             </span>
+          )}
+          {collapsed && (
+            <div className="flex items-center gap-1 ml-2">
+              <div className="w-1 h-1 rounded-full bg-accent animate-pulse" />
+              <span className="text-[8px] font-mono text-gray-600 uppercase tracking-tighter">Monitoring</span>
+            </div>
           )}
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -40,8 +52,8 @@ export default function Panel({ title, icon: Icon, children, className = '', bad
       </div>
 
       {/* Content */}
-      {!collapsed && (
-        <div className="p-3">
+      <div className={`p-3 flex-1 overflow-auto transition-all duration-300 ${collapsed ? 'opacity-0 h-0 p-0 pointer-events-none' : 'opacity-100'}`}>
+
           {loading ? (
             <div className="space-y-2.5">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -62,7 +74,6 @@ export default function Panel({ title, icon: Icon, children, className = '', bad
             children
           )}
         </div>
-      )}
     </div>
   );
 }

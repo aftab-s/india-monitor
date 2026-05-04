@@ -103,10 +103,16 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
 
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.3); }
@@ -127,9 +133,14 @@ body {
   animation: slideUp 0.4s ease-out forwards;
 }
 
+.animate-slide-down {
+  animation: slideDown 0.4s ease-out forwards;
+}
+
 .animate-fade-in {
   animation: fadeIn 0.3s ease-out forwards;
 }
+
 
 .skeleton-shimmer {
   background: linear-gradient(90deg, var(--color-dark-700) 25%, var(--color-dark-600) 50%, var(--color-dark-700) 75%);
@@ -207,3 +218,50 @@ body {
   80% { bottom: 100%; }
   100% { bottom: -100px; }
 }
+
+/* react-grid-layout custom styles */
+.react-grid-placeholder {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px dashed rgba(255, 255, 255, 0.1) !important;
+  border-radius: 0 !important;
+  opacity: 0.5 !important;
+  z-index: 2 !important;
+  user-select: none !important;
+}
+
+.react-resizable-handle {
+  background-image: none !important;
+  width: 12px !important;
+  height: 12px !important;
+  bottom: 2px !important;
+  right: 2px !important;
+  cursor: nwse-resize !important;
+}
+
+.react-resizable-handle::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 5px;
+  height: 5px;
+  border-right: 1px solid rgba(255, 255, 255, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.react-grid-item.react-grid-placeholder {
+  transition-duration: 100ms !important;
+}
+
+/* Scroll-to-Live Highlight */
+.live-flash {
+  animation: live-flash-glow 1.2s ease-out;
+}
+
+@keyframes live-flash-glow {
+  0% { box-shadow: 0 0 0 0 rgba(255, 0, 51, 0); border-color: transparent; }
+  20% { box-shadow: 0 0 30px 4px rgba(255, 0, 51, 0.4); border-color: rgba(255, 0, 51, 0.8); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 0, 51, 0); border-color: transparent; }
+}
+
+

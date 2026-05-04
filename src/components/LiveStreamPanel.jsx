@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Panel from './Panel';
-import { Play, Tv, Video } from 'lucide-react';
+import { Play, Tv, Video, X, Maximize2, ExternalLink } from 'lucide-react';
 
 export default function LiveStreamPanel({ title, youtubeId: rawId, icon: Icon = Tv }) {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isEnlarged, setIsEnlarged] = useState(false);
 
-  // Helper to extract ID from various YouTube URL formats
   const getYoutubeId = (idOrUrl) => {
     if (!idOrUrl) return '';
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|live\/)([^#&?]*).*/;
@@ -15,26 +15,112 @@ export default function LiveStreamPanel({ title, youtubeId: rawId, icon: Icon = 
 
   const youtubeId = getYoutubeId(rawId);
 
+  // Close on ESC
+  useEffect(() => {
+    const handleEsc = (e) => { if (e.key === 'Escape') setIsEnlarged(false); };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
+
   return (
-    <Panel 
-      title={title} 
-      icon={Icon} 
-      badge="LIVE" 
-      badgeColor="live"
-      className="h-[220px]"
-    >
-      <div className="relative w-full h-full bg-black border border-dark-600/30">
-        <iframe
-          width="100%"
-          height="100%"
-          src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&rel=0&modestbranding=1&controls=0`}
-          title={title}
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          className="grayscale hover:grayscale-0 transition-all duration-700 pointer-events-auto"
-        ></iframe>
-      </div>
-    </Panel>
+    <>
+      <Panel 
+        title={title} 
+        icon={Icon} 
+        badge="LIVE" 
+        badgeColor="live"
+        className="h-full group/stream"
+      >
+        <div 
+          onClick={() => setIsEnlarged(true)}
+          className="relative w-full h-full bg-black overflow-hidden cursor-zoom-in border border-dark-700/50 group-hover:border-accent/40 transition-colors"
+        >
+          {/* Minimal Preview Video */}
+          <div className="absolute inset-0 pointer-events-none grayscale opacity-60 group-hover/stream:opacity-100 group-hover/stream:grayscale-0 transition-all duration-500">
+            <iframe
+              width="100%"
+              height="100%"
+              src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&rel=0&modestbranding=1&controls=0&showinfo=0&iv_load_policy=3&disablekb=1&fs=0`}
+              title={title}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              className="scale-[1.1]" // Hide tiny edge artifacts
+            />
+          </div>
+
+
+          {/* CRT / Monitor Overlay */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(circle,white_1px,transparent_1px)] bg-[size:3px_3px]" />
+            <div className="absolute inset-0 scanline opacity-20" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+          </div>
+
+          {/* Hover UI */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/stream:opacity-100 transition-opacity duration-300">
+            <div className="bg-black/60 backdrop-blur-md border border-white/10 p-2 rounded-full transform scale-90 group-hover/stream:scale-100 transition-transform">
+              <Maximize2 size={16} className="text-white" />
+            </div>
+          </div>
+
+          {/* Status Text overlay */}
+          <div className="absolute bottom-2 left-2 flex items-center gap-1.5 opacity-60 group-hover/stream:opacity-100 transition-opacity">
+            <div className="w-1 h-1 rounded-full bg-accent animate-pulse" />
+            <span className="text-[8px] font-mono text-gray-400 tracking-widest uppercase">Signal Active</span>
+          </div>
+        </div>
+      </Panel>
+
+      {/* Enlarged Modal Portal */}
+      {isEnlarged && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-sm p-4 md:p-10 animate-fade-in">
+          <div className="relative w-full max-w-6xl aspect-video bg-black border border-dark-600 shadow-[0_0_50px_rgba(255,0,51,0.15)]">
+            
+            {/* Modal Header */}
+            <div className="absolute -top-10 left-0 right-0 flex items-center justify-between px-2">
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-1.5 bg-accent animate-pulse" />
+                <span className="text-[11px] font-mono tracking-[4px] text-gray-300 uppercase">{title} — Intel Stream</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <a 
+                  href={`https://www.youtube.com/watch?v=${youtubeId}`} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 text-[10px] font-mono text-gray-500 hover:text-white transition-colors"
+                >
+                  <ExternalLink size={12} />
+                  <span>YOUTUBE.COM</span>
+                </a>
+                <button 
+                  onClick={() => setIsEnlarged(false)}
+                  className="flex items-center gap-1.5 text-[10px] font-mono text-gray-400 hover:text-accent transition-colors"
+                >
+                  <X size={16} />
+                  <span>CLOSE [ESC]</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Main Video (with controls) */}
+            <iframe
+              width="100%"
+              height="100%"
+              src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1`}
+              title={title}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="w-full h-full"
+            />
+
+            {/* Corner Decorative Elements */}
+            <div className="absolute -bottom-2 -right-2 w-10 h-10 border-r border-b border-dark-500" />
+            <div className="absolute -top-2 -left-2 w-10 h-10 border-t border-l border-dark-500" />
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
   );
 }

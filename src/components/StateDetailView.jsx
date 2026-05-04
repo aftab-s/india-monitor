@@ -1,9 +1,29 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ArrowLeft, MapPin, Thermometer, Wind, Droplets, Shield, Newspaper, Wheat, Activity, Building, Navigation } from 'lucide-react';
+import { Responsive, useContainerWidth } from 'react-grid-layout';
+import useAutoRefresh from '../hooks/useAutoRefresh';
+
+
 import Panel, { StatValue, NewsItem } from './Panel';
 import { fetchStateWeather, fetchNews, fetchDistrictNews, fetchAirQuality, fetchWikipediaSummary, fetchStateInfraNews, fetchGroqIntelligence, STATE_ECONOMY, STATE_DEMOGRAPHICS, STATE_AGRICULTURE, SAFE_REGIONS } from '../services/api';
 import { REGION_COLORS, STATES } from '../data/constants';
 import { STATE_DISTRICTS, DISTRICT_COORDS } from '../data/districts';
+
+const INITIAL_STATE_LAYOUTS = {
+  lg: [
+    { i: 'districts', x: 0, y: 0, w: 2, h: 5 },
+    { i: 'intel', x: 2, y: 0, w: 2, h: 7 },
+    { i: 'weather', x: 2, y: 7, w: 1, h: 9 },
+    { i: 'economy', x: 3, y: 7, w: 1, h: 7 },
+    { i: 'aqi', x: 1, y: 5, w: 1, h: 5 },
+    { i: 'news', x: 0, y: 16, w: 3, h: 6 },
+    { i: 'agri', x: 0, y: 10, w: 1, h: 6 },
+    { i: 'security', x: 1, y: 10, w: 1, h: 6 },
+    { i: 'demographics', x: 0, y: 5, w: 1, h: 5 },
+    { i: 'infra', x: 3, y: 14, w: 1, h: 8 },
+  ]
+};
+
 
 export default function StateDetailView({ state, onBack }) {
   const [selectedDistrict, setSelectedDistrict] = useState(null);
@@ -12,6 +32,32 @@ export default function StateDetailView({ state, onBack }) {
   useEffect(() => {
     setSelectedDistrict(state.capital);
   }, [state.capital]);
+
+  const { containerRef, width } = useContainerWidth({ initialWidth: 1200 });
+  
+  const [layouts, setLayouts] = useState(() => {
+    const saved = localStorage.getItem('india-monitor-state-layout');
+    return saved ? JSON.parse(saved) : INITIAL_STATE_LAYOUTS;
+  });
+
+  const onLayoutChange = (currentLayout, allLayouts) => {
+    setLayouts(allLayouts);
+    localStorage.setItem('india-monitor-state-layout', JSON.stringify(allLayouts));
+  };
+
+  const panels = useMemo(() => [
+    { id: 'districts', component: <StateDistrictsPanel state={state} selectedDistrict={selectedDistrict || state.capital} onDistrictSelect={setSelectedDistrict} /> },
+    { id: 'intel', component: <IntelligenceBriefPanel district={selectedDistrict || state.capital} state={state} /> },
+    { id: 'weather', component: <StateWeatherPanel district={selectedDistrict || state.capital} coords={DISTRICT_COORDS[selectedDistrict || state.capital] || { lat: state.lat, lng: state.lng }} /> },
+    { id: 'economy', component: <StateEconomyPanel state={state} /> },
+    { id: 'aqi', component: <StateAirQualityPanel state={state} district={selectedDistrict || state.capital} coords={DISTRICT_COORDS[selectedDistrict || state.capital] || { lat: state.lat, lng: state.lng }} /> },
+    { id: 'news', component: <StateNewsPanel state={state} district={selectedDistrict || state.capital} /> },
+    { id: 'agri', component: <StateAgriculturePanel state={state} district={selectedDistrict || state.capital} /> },
+    { id: 'security', component: <StateSecurityPanel state={state} /> },
+    { id: 'demographics', component: <StateDemographicsPanel state={state} /> },
+    { id: 'infra', component: <StateInfraPanel state={state} /> },
+  ], [state, selectedDistrict]);
+
 
   const activeLocation = selectedDistrict || state.capital;
   const activeCoords = DISTRICT_COORDS[activeLocation] || { lat: state.lat, lng: state.lng };
@@ -47,11 +93,11 @@ export default function StateDetailView({ state, onBack }) {
           <div className="flex items-center gap-4 text-[10px] text-gray-600 bg-black px-3 py-1.5 rounded-none border border-dark-500">
             <div className="flex items-center gap-1">
               <span className="text-gray-500 uppercase tracking-tighter">Lat:</span>
-              <span className="font-mono text-gray-400">{activeCoords.lat.toFixed(4)}°</span>
+              <span className="font-mono text-gray-400">{(activeCoords.lat || 0).toFixed(4)}°</span>
             </div>
             <div className="flex items-center gap-1">
               <span className="text-gray-500 uppercase tracking-tighter">Lng:</span>
-              <span className="font-mono text-gray-400">{activeCoords.lng.toFixed(4)}°</span>
+              <span className="font-mono text-gray-400">{(activeCoords.lng || 0).toFixed(4)}°</span>
             </div>
             <div className="px-2 py-0.5 bg-accent/5 text-accent rounded-none text-[9px] font-bold">STATE_{state.code}</div>
           </div>
@@ -59,22 +105,27 @@ export default function StateDetailView({ state, onBack }) {
       </div>
 
       {/* State Panels Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-1 p-1">
-        <StateDistrictsPanel 
-          state={state} 
-          selectedDistrict={activeLocation} 
-          onDistrictSelect={setSelectedDistrict} 
-        />
-        <IntelligenceBriefPanel district={activeLocation} state={state} />
-        <StateWeatherPanel district={activeLocation} coords={activeCoords} />
-        <StateEconomyPanel state={state} />
-        <StateAirQualityPanel state={state} district={activeLocation} coords={activeCoords} />
-        <StateNewsPanel state={state} district={activeLocation} />
-        <StateAgriculturePanel state={state} district={activeLocation} />
-        <StateSecurityPanel state={state} />
-        <StateDemographicsPanel state={state} />
-        <StateInfraPanel state={state} />
+      <div ref={containerRef} className="flex-1 px-6 md:px-12 py-4">
+
+        <Responsive
+          className="layout"
+          layouts={layouts}
+          width={width}
+          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+          cols={{ lg: 4, md: 3, sm: 2, xs: 1, xxs: 1 }}
+          rowHeight={30}
+          onLayoutChange={onLayoutChange}
+          dragConfig={{ handle: ".drag-handle", enabled: true }}
+          margin={[4, 4]}
+        >
+          {panels.map(panel => (
+            <div key={panel.id}>
+              {panel.component}
+            </div>
+          ))}
+        </Responsive>
       </div>
+
     </div>
   );
 }
@@ -127,6 +178,8 @@ function StateWeatherPanel({ district, coords }) {
   }, [district, coords.lat, coords.lng]);
 
   useEffect(() => { load(); }, [load]);
+  useAutoRefresh(load, 10 * 60000); // Refresh every 10 minutes
+
 
   return (
     <Panel title={`Atmospheric Stn: ${district}`} icon={Thermometer} badge="LIVE FEED" badgeColor="live" loading={loading} onRefresh={load}>
@@ -257,6 +310,8 @@ function StateAirQualityPanel({ state, district, coords }) {
   }, [district, coords.lat, coords.lng]);
 
   useEffect(() => { load(); }, [load]);
+  useAutoRefresh(load, 15 * 60000); // Refresh every 15 minutes
+
 
   const aqiColor = data?.aqi <= 50 ? '#00e400' : data?.aqi <= 100 ? '#92d050' : data?.aqi <= 200 ? '#ff7e00' : '#ff0000';
   const aqiCat = data?.aqi <= 50 ? 'Good' : data?.aqi <= 100 ? 'Satisfactory' : data?.aqi <= 200 ? 'Moderate' : 'Poor';
@@ -303,6 +358,8 @@ function StateNewsPanel({ state, district }) {
   }, [district]);
 
   useEffect(() => { load(); }, [load]);
+  useAutoRefresh(load, 20 * 60000); // Refresh every 20 minutes
+
 
   return (
     <Panel title={`News Feed: ${district}`} icon={Newspaper} loading={loading} onRefresh={load}>
