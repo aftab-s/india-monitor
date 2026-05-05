@@ -5,6 +5,7 @@ import useAutoRefresh from '../hooks/useAutoRefresh';
 
 
 import Panel, { StatValue, NewsItem } from './Panel';
+import Footer from './Footer';
 import { fetchStateWeather, fetchNews, fetchDistrictNews, fetchAirQuality, fetchWikipediaSummary, fetchStateInfraNews, fetchGroqIntelligence, STATE_ECONOMY, STATE_DEMOGRAPHICS, STATE_AGRICULTURE, SAFE_REGIONS } from '../services/api';
 import { REGION_COLORS, STATES } from '../data/constants';
 import { STATE_DISTRICTS, DISTRICT_COORDS } from '../data/districts';
@@ -125,6 +126,7 @@ export default function StateDetailView({ state, onBack }) {
           ))}
         </Responsive>
       </div>
+      <Footer />
 
     </div>
   );
