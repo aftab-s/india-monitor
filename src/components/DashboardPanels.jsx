@@ -505,7 +505,7 @@ function NewsPanel() {
       ) : (
         <div className="max-h-64 overflow-y-auto space-y-0">
           {news?.slice(0, 8).map((item, i) => (
-            <NewsItem key={i} title={item.title} source={item.source} time={item.timeAgo} url={item.link} />
+            <NewsItem key={i} title={item.title} source={item.source} time={item.timeAgo} url={item.url} />
           ))}
         </div>
       )}

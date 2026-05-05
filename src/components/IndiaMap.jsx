@@ -3,8 +3,8 @@ import maplibregl from 'maplibre-gl';
 import { STATES, REGION_COLORS } from '../data/constants';
 import { Layers, MapPin } from 'lucide-react';
 
-const INDIA_GEOJSON_URL = 'https://raw.githubusercontent.com/geohacker/india/master/state/india_state.geojson';
-const INDIA_GEOJSON_FALLBACK = 'https://raw.githubusercontent.com/datameet/maps/master/States/Admin2.json';
+const INDIA_GEOJSON_URL = 'https://raw.githubusercontent.com/datta07/INDIAN-SHAPEFILES/master/INDIA/INDIA_STATES.geojson';
+const INDIA_GEOJSON_FALLBACK = 'https://raw.githubusercontent.com/geohacker/india/master/state/india_state.geojson';
 
 // Map state codes from various GeoJSON sources to our codes
 const STATE_NAME_TO_CODE = {};
@@ -20,14 +20,15 @@ const EXTRA_MAPPINGS = {
   'andhra pradesh': 'AP', 'arunachal pradesh': 'AR', 'assam': 'AS',
   'bihar': 'BR', 'chandigarh': 'CH', 'chhattisgarh': 'CT', 'chattisgarh': 'CT',
   'dadra & nagar haveli': 'DD', 'daman & diu': 'DD', 'dadra and nagar haveli and daman and diu': 'DD',
+  'dadra & nagar haveli and daman & diu': 'DD',
   'delhi': 'DL', 'nct of delhi': 'DL', 'goa': 'GA', 'gujarat': 'GJ',
   'haryana': 'HR', 'himachal pradesh': 'HP', 'jammu & kashmir': 'JK',
   'jammu and kashmir': 'JK', 'jharkhand': 'JH', 'karnataka': 'KA',
   'kerala': 'KL', 'ladakh': 'LA', 'lakshadweep': 'LD', 'madhya pradesh': 'MP',
   'maharashtra': 'MH', 'manipur': 'MN', 'meghalaya': 'ML', 'mizoram': 'MZ',
-  'nagaland': 'NL', 'odisha': 'OR', 'puducherry': 'PY', 'punjab': 'PB',
+  'nagaland': 'NL', 'odisha': 'OR', 'orissa': 'OR', 'puducherry': 'PY', 'punjab': 'PB',
   'rajasthan': 'RJ', 'sikkim': 'SK', 'tamil nadu': 'TN', 'telangana': 'TS',
-  'tripura': 'TR', 'uttar pradesh': 'UP', 'uttarakhand': 'UK', 'west bengal': 'WB'
+  'tripura': 'TR', 'uttar pradesh': 'UP', 'uttarakhand': 'UK', 'uttaranchal': 'UK', 'west bengal': 'WB'
 };
 
 function getStateCode(name) {
@@ -98,7 +99,10 @@ export default function IndiaMap({
 
         // Add state codes and colors to features
         data.features = data.features.map((feature, index) => {
-          const name = feature.properties.ST_NM || feature.properties.NAME_1 || feature.properties.name;
+          const rawName = feature.properties.STNAME || feature.properties.ST_NM || feature.properties.NAME_1 || feature.properties.name;
+          const name = rawName
+            ? rawName.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+            : rawName;
           const code = getStateCode(name);
           const stateInfo = STATES.find(s => s.code === code);
           const color = stateInfo ? REGION_COLORS[stateInfo.region] : '#333';
