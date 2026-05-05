@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import Header from './components/Header';
 import IndiaMap from './components/IndiaMap';
 import StateDetailView from './components/StateDetailView';
@@ -100,6 +101,7 @@ export default function App() {
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden bg-black text-white">
+      <Analytics />
       <Header
         currentTime={currentTime}
         selectedState={selectedState}
