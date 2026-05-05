@@ -883,20 +883,35 @@ function SystemInfoPanel() {
         </div>
 
         <div className="rounded-sm border border-dark-500 bg-white/[0.02] p-4 flex flex-col justify-between gap-3">
-          <div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-[0.35em] mb-3">Release</div>
-            <div className="flex items-center gap-1.5 px-2 py-1.5 border border-dark-500 text-[8px] font-mono text-gray-700 uppercase tracking-tighter w-fit">
-              BUILD_2026.05.04_REL_A
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-[10px] text-gray-500 uppercase tracking-[0.35em] mb-3">Release</div>
+              <div className="flex items-center gap-1.5 px-2 py-1.5 border border-dark-500 text-[8px] font-mono text-gray-700 uppercase tracking-tighter w-fit">
+                BUILD_2026.05.04_REL_A
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-[10px] text-gray-500 uppercase tracking-[0.35em] mb-3">Collaboration</div>
+              <a 
+                href="https://what-s-happening-in-kerala.vercel.app/" 
+                target="_blank" 
+                rel="noreferrer" 
+                className="flex items-center gap-2 px-2 py-1.5 border border-accent/40 hover:border-accent hover:bg-accent/5 transition-all text-[8px] font-mono tracking-widest text-accent uppercase cursor-pointer group ml-auto w-fit"
+              >
+                <span>Kerala Monitor</span>
+                <ExternalLink size={8} />
+              </a>
             </div>
           </div>
+
           <a 
             href="https://github.com/Aftab-S/India-Monitor" 
             target="_blank" 
             rel="noreferrer" 
-            className="flex items-center justify-between gap-2 px-2.5 py-2 bg-white/5 border border-white/10 hover:border-accent hover:text-white transition-all text-[9px] font-mono tracking-widest text-gray-400 uppercase cursor-pointer group"
+            className="flex items-center justify-between gap-2 px-2.5 py-2 bg-white/5 border border-status-warning/20 hover:border-status-warning hover:text-status-warning transition-all text-[9px] font-mono tracking-widest text-gray-400 uppercase cursor-pointer group"
           >
             <span>Star on GitHub</span>
-            <ExternalLink size={10} className="group-hover:text-accent" />
+            <ExternalLink size={10} className="group-hover:text-status-warning" />
           </a>
           <div className="text-[9px] text-gray-600 uppercase tracking-[0.3em]">
             © 2026 Observe India

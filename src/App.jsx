@@ -5,6 +5,7 @@ import IndiaMap from './components/IndiaMap';
 import StateDetailView from './components/StateDetailView';
 import DashboardPanels from './components/DashboardPanels';
 import AlertsPanel from './components/AlertsPanel';
+import Footer from './components/Footer';
 import { STATES } from './data/constants';
 import { fetchNews } from './services/api';
 
@@ -144,6 +145,7 @@ export default function App() {
               showGrid={showGrid}
               onToggleLayers={handleToggleLayers}
             />
+            <Footer />
           </div>
         </div>
 
