@@ -1,6 +1,6 @@
 # 🇮🇳 Observe India: Real-Time Intelligence Dashboard
 
-![Observe India Hero](public\observe-india.png)
+![Observe India Hero](public/observe-india.png)
 
 > **A High-Fidelity, Technical Intelligence Hub for National Monitoring and Situational Awareness.**
 
