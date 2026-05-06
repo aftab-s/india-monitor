@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/news.js": {
-      "maxDuration": 20
-    }
-  },
   "regions": ["bom1"],
   "headers": [
     {
