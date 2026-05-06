@@ -1,0 +1,9 @@
+# Development files
+scripts/
+
+# Scratch/test files
+scratch/
+
+# Local environment
+.env.local
+*.local
