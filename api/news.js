@@ -197,5 +197,4 @@ export default async function handler(req, res) {
   return res.status(200).json({ items, source: state ? `state:${state}` : `national:${category}` });
 }
 
-// Force Node.js runtime (not Edge) — required for rss-parser + outbound HTTP
-export const config = { runtime: 'nodejs' };
+
