@@ -79,4 +79,8 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 
 ---
 
-*Observe. Analyze. Monitor.*
+<p align="center">
+  <a href="https://what-s-happening-in-kerala.vercel.app/">
+    <img src="https://img.shields.io/badge/In%20Collaboration%20with-Kerala%20Monitor-000000?style=for-the-badge&logo=vercel" alt="Kerala Monitor Collaboration">
+  </a>
+</p>
