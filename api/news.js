@@ -1,4 +1,4 @@
-import Parser from 'rss-parser';
+const Parser = require('rss-parser');
 
 const parser = new Parser({
   customFields: {
@@ -62,7 +62,6 @@ const STATE_FEEDS = {
   UK: [{ source: 'The Hindu', url: 'https://www.thehindu.com/news/national/uttarakhand/feeder/default.rss' }],
   GA: [{ source: 'The Hindu', url: 'https://www.thehindu.com/news/national/goa/feeder/default.rss' }],
   JK: [{ source: 'The Hindu', url: 'https://www.thehindu.com/news/national/jammu-and-kashmir/feeder/default.rss' }],
-  // UTs — The Hindu "other-states" feed filtered by territory keywords
   AN: [
     { source: 'The Hindu', url: 'https://www.thehindu.com/news/national/other-states/feeder/default.rss', keywords: ['andaman', 'nicobar', 'port blair'] },
     { source: 'The Hindu', url: 'https://www.thehindu.com/news/national/feeder/default.rss',              keywords: ['andaman', 'nicobar', 'port blair'] },
@@ -101,7 +100,6 @@ const NATIONAL_FEEDS = {
   ],
 };
 
-// ─── Helpers ──────────────────────────────────────────────────
 function relativeTime(dateStr) {
   if (!dateStr) return 'Unknown date';
   const date = new Date(dateStr);
@@ -128,7 +126,6 @@ async function fetchFeed({ source, url, keywords }) {
       timeAgo: relativeTime(item.pubDate || item.isoDate),
     }));
 
-    // Filter by keywords if specified (for UTs that share a national feed)
     if (keywords && keywords.length > 0) {
       const kw = keywords.map(k => k.toLowerCase());
       items = items.filter(item =>
@@ -139,7 +136,7 @@ async function fetchFeed({ source, url, keywords }) {
     return items;
   } catch (err) {
     console.warn(`[RSS] Failed: ${source} (${url}) — ${err.message}`);
-    return [];   // skip silently
+    return [];
   }
 }
 
@@ -153,12 +150,10 @@ function dedup(items) {
   });
 }
 
-// ─── Handler ──────────────────────────────────────────────────
-export default async function handler(req, res) {
-  // CORS — allow same-origin + localhost dev
+module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
-  res.setHeader('Cache-Control', 's-maxage=1200, stale-while-revalidate=600'); // 20 min CDN cache
+  res.setHeader('Cache-Control', 's-maxage=1200, stale-while-revalidate=600');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET')     return res.status(405).json({ error: 'Method not allowed' });
@@ -173,11 +168,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: `No feeds configured for state="${state}" category="${category}"` });
   }
 
-  // Fetch all feeds in parallel, skip failures
   const results = await Promise.allSettled(feeds.map(fetchFeed));
   let allItems = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
 
-  // If keyword filtering left us with nothing, fall back to unfiltered national feed
   if (!allItems.length && state) {
     console.warn(`[News] No keyword matches for state=${state}, falling back to national feed`);
     try {
@@ -195,6 +188,4 @@ export default async function handler(req, res) {
     .slice(0, 20);
 
   return res.status(200).json({ items, source: state ? `state:${state}` : `national:${category}` });
-}
-
-
+};
