@@ -1,15 +1,31 @@
 import Parser from 'rss-parser';
 
 const parser = new Parser({
-  timeout: 8000,
-  headers: {
-    'User-Agent': 'Mozilla/5.0 (compatible; IndiaMonitor/1.0)',
-    'Accept': 'application/rss+xml, application/xml, text/xml, */*',
-  },
   customFields: {
     item: [['media:content', 'mediaContent'], ['dc:creator', 'creator']],
   },
 });
+
+async function fetchRssXml(url) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache',
+        'Referer': 'https://www.thehindu.com/',
+      },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.text();
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 const STATE_FEEDS = {
   KL: [{ source: 'The Hindu', url: 'https://www.thehindu.com/news/national/kerala/feeder/default.rss' }],
@@ -180,3 +196,6 @@ export default async function handler(req, res) {
 
   return res.status(200).json({ items, source: state ? `state:${state}` : `national:${category}` });
 }
+
+// Force Node.js runtime (not Edge) — required for rss-parser + outbound HTTP
+export const config = { runtime: 'nodejs' };
