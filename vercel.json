@@ -1,8 +1,7 @@
 {
   "functions": {
     "api/news.js": {
-      "maxDuration": 20,
-      "runtime": "nodejs20.x"
+      "maxDuration": 20
     }
   },
   "regions": ["bom1"],
