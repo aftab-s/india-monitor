@@ -144,6 +144,10 @@ const NATIONAL_FEEDS = {
   tech: [
     { source: 'The Hindu Tech', url: 'https://www.thehindu.com/sci-tech/technology/feeder/default.rss' },
   ],
+  entertainment: [
+    { source: 'The Hindu Entertainment', url: 'https://www.thehindu.com/entertainment/feeder/default.rss' },
+    { source: 'Indian Express Entertainment', url: 'https://indianexpress.com/section/entertainment/feed/' },
+  ],
 };
 
 function relativeTime(dateStr) {
