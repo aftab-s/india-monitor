@@ -1,3 +1,16 @@
 {
-  "regions": ["bom1"]
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "regions": ["bom1"],
+  "functions": {
+    "api/news.js": {
+      "maxDuration": 30
+    },
+    "api/test.js": {
+      "maxDuration": 10
+    }
+  }
 }
