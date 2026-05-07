@@ -1,7 +1,6 @@
 # Development files
 scripts/
 api/node_modules/
-api/package.json
 api/package-lock.json
 
 # Scratch/test files
