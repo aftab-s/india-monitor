@@ -1,10 +1,56 @@
-import Parser from 'rss-parser';
+let parserPromise;
 
-const parser = new Parser({
-  customFields: {
-    item: [['media:content', 'mediaContent'], ['dc:creator', 'creator']],
-  },
-});
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  res.setHeader('Cache-Control', 's-maxage=1200, stale-while-revalidate=600');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'GET')     return res.status(405).json({ error: 'Method not allowed' });
+
+  const { state, category = 'general' } = req.query;
+
+  const feeds = state
+    ? (STATE_FEEDS[state.toUpperCase()] || [])
+    : (NATIONAL_FEEDS[category] || NATIONAL_FEEDS.general);
+
+  if (!feeds.length) {
+    return res.status(400).json({ error: `No feeds configured for state="${state}" category="${category}"` });
+  }
+
+  const results = await Promise.allSettled(feeds.map(fetchFeed));
+  let allItems = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
+
+  if (!allItems.length && state) {
+    console.warn(`[News] No keyword matches for state=${state}, falling back to national feed`);
+    try {
+      const fallback = await fetchFeed({ source: 'The Hindu', url: 'https://www.thehindu.com/news/national/feeder/default.rss' });
+      allItems = fallback;
+    } catch { /* ignore */ }
+  }
+
+  if (!allItems.length) {
+    return res.status(200).json({ items: [], source: 'empty' });
+  }
+
+  const items = dedup(allItems)
+    .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
+    .slice(0, 20);
+
+  return res.status(200).json({ items, source: state ? `state:${state}` : `national:${category}` });
+}
+
+async function getParser() {
+  if (!parserPromise) {
+    parserPromise = import('rss-parser').then(({ default: Parser }) => new Parser({
+      customFields: {
+        item: [['media:content', 'mediaContent'], ['dc:creator', 'creator']],
+      },
+    }));
+  }
+
+  return parserPromise;
+}
 
 async function fetchRssXml(url) {
   const controller = new AbortController();
@@ -117,6 +163,7 @@ function relativeTime(dateStr) {
 
 async function fetchFeed({ source, url, keywords }) {
   try {
+    const parser = await getParser();
     const xml = await fetchRssXml(url);
     const feed = await parser.parseString(xml);
     let items = (feed.items || []).map(item => ({
@@ -149,44 +196,4 @@ function dedup(items) {
     seen.add(key);
     return true;
   });
-}
-
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET');
-  res.setHeader('Cache-Control', 's-maxage=1200, stale-while-revalidate=600');
-
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'GET')     return res.status(405).json({ error: 'Method not allowed' });
-
-  const { state, category = 'general' } = req.query;
-
-  const feeds = state
-    ? (STATE_FEEDS[state.toUpperCase()] || [])
-    : (NATIONAL_FEEDS[category] || NATIONAL_FEEDS.general);
-
-  if (!feeds.length) {
-    return res.status(400).json({ error: `No feeds configured for state="${state}" category="${category}"` });
-  }
-
-  const results = await Promise.allSettled(feeds.map(fetchFeed));
-  let allItems = results.flatMap(r => r.status === 'fulfilled' ? r.value : []);
-
-  if (!allItems.length && state) {
-    console.warn(`[News] No keyword matches for state=${state}, falling back to national feed`);
-    try {
-      const fallback = await fetchFeed({ source: 'The Hindu', url: 'https://www.thehindu.com/news/national/feeder/default.rss' });
-      allItems = fallback;
-    } catch { /* ignore */ }
-  }
-
-  if (!allItems.length) {
-    return res.status(200).json({ items: [], source: 'empty' });
-  }
-
-  const items = dedup(allItems)
-    .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
-    .slice(0, 20);
-
-  return res.status(200).json({ items, source: state ? `state:${state}` : `national:${category}` });
 }
