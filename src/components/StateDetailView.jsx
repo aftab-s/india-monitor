@@ -6,7 +6,7 @@ import useAutoRefresh from '../hooks/useAutoRefresh';
 
 import Panel, { StatValue, NewsItem } from './Panel';
 import Footer from './Footer';
-import { fetchStateWeather, fetchNews, fetchDistrictNews, fetchStateNews, fetchAirQuality, fetchWikipediaSummary, fetchStateInfraNews, fetchGroqIntelligence, STATE_ECONOMY, STATE_DEMOGRAPHICS, STATE_AGRICULTURE, SAFE_REGIONS } from '../services/api';
+import { fetchStateWeather, fetchNews, fetchDistrictNews, fetchStateNews, fetchAirQuality, fetchWikipediaSummary, fetchStateInfraNews, STATE_ECONOMY, STATE_DEMOGRAPHICS, STATE_AGRICULTURE, SAFE_REGIONS } from '../services/api';
 import { REGION_COLORS, STATES } from '../data/constants';
 import { STATE_DISTRICTS, DISTRICT_COORDS } from '../data/districts';
 
@@ -225,6 +225,44 @@ function StateWeatherPanel({ district, coords }) {
 }
 
 // ─── Intelligence Brief Panel ──────────────────────────────────
+function cleanBriefText(text = '') {
+  return text
+    .replace(/\*\*/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function fetchDistrictWikipediaSummary(district, state) {
+  const isCapital = district === state.capital;
+  const queries = isCapital
+    ? [
+        `${district}, ${state.name}`,
+        `${district}, India`,
+        district,
+        `${district} district, ${state.name}`,
+        `${district} district`,
+      ]
+    : [
+        `${district} district`,
+        `${district} district, ${state.name}`,
+        `${district}, ${state.name}`,
+        district,
+        `${state.capital}, ${state.name}`,
+        state.name,
+      ];
+
+  const uniqueQueries = [...new Set(queries)];
+
+  for (const query of uniqueQueries) {
+    const data = await fetchWikipediaSummary(query);
+    const extract = data?.extract?.toLowerCase() || '';
+    const isDisambiguation = extract.includes('may refer to:') || extract.includes('may refer to');
+    if (data?.extract && !isDisambiguation) return data;
+  }
+
+  return null;
+}
+
 function IntelligenceBriefPanel({ district, state }) {
   const [intel, setIntel] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -232,16 +270,13 @@ function IntelligenceBriefPanel({ district, state }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Try Groq AI Intelligence (if key exists)
-      let data = await fetchGroqIntelligence(district, state.name);
+      const data = await fetchDistrictWikipediaSummary(district, state);
       
-      // 2. Fallback to Wikipedia
-      if (!data) {
-        const query = district === state.capital ? district : `${district} district, ${state.name}`;
-        data = await fetchWikipediaSummary(query);
-      }
-      
-      setIntel(data);
+      setIntel(data ? {
+        ...data,
+        title: cleanBriefText(data.title),
+        extract: cleanBriefText(data.extract),
+      } : null);
     } catch {
       setIntel(null);
     }

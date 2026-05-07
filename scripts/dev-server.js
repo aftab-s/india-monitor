@@ -2,8 +2,6 @@
 import http from 'http';
 import { URL } from 'url';
 
-const { default: handler } = await import('../api/news.js');
-
 const PORT = 3001;
 
 const server = http.createServer(async (req, res) => {
@@ -27,6 +25,7 @@ const server = http.createServer(async (req, res) => {
   };
 
   try {
+    const { default: handler } = await import(`../api/news.js?t=${Date.now()}`);
     await handler(req, res);
   } catch (err) {
     console.error('[dev-server] Error:', err);

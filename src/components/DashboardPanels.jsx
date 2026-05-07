@@ -27,7 +27,6 @@ import {
   WATER_RESERVOIRS, CYBER_THREATS, BORDER_STATUS, CROP_PRICES,
   ELECTION_DATA, UNICORN_DATA, INFRA_TARGETS
 } from '../services/api';
-import { POPULAR_MOVIES } from '../data/constants';
 import LiveStreamPanel from './LiveStreamPanel';
 import IndiaMap from './IndiaMap';
 
@@ -103,8 +102,8 @@ export default function DashboardPanels({
     { id: 'aqi', component: <AirQualityPanel /> },
     { id: 'news', component: <NewsPanel /> },
     { id: 'stream1', component: <LiveStreamPanel title="NDTV India" youtubeId="https://www.youtube.com/live/p8yZdGjqfxg?si=3DwigqylYb1q5yVp" /> },
-    { id: 'stream2', component: <LiveStreamPanel title="India Today" youtubeId="https://www.youtube.com/live/76-f6i4YvmI?si=D7xg4NDteFhj507e" /> },
-    { id: 'stream3', component: <LiveStreamPanel title="Republic Bharat" youtubeId="https://www.youtube.com/live/6qbpkpYqLQk?si=6J6ur9UBvLlHS2IY" /> },
+    { id: 'stream2', component: <LiveStreamPanel title="India Today" youtubeId="https://www.youtube.com/watch?v=tr9CoMGkqf4" /> },
+    { id: 'stream3', component: <LiveStreamPanel title="CNN News18" youtubeId="https://www.youtube.com/watch?v=rfDx1HMvXbQ" /> },
     { id: 'markets', component: <MarketsPanel /> },
     { id: 'currency', component: <CurrencyPanel /> },
     { id: 'sectors', component: <SectorsPanel /> },
@@ -252,62 +251,29 @@ function SectorsPanel() {
 
 // ─── Movies Panel (OMDB/Entertainment) ────────────────────────
 function MoviesPanel() {
-  const [movies, setMovies] = useState(null);
+  const [news, setNews] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const apiKey = import.meta.env.VITE_OMDB_API_KEY;
-
-    if (apiKey) {
-      try {
-        const results = await Promise.all(
-          POPULAR_MOVIES.slice(0, 4).map(m => 
-            fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(m.title)}&apikey=${apiKey}`)
-              .then(res => res.json())
-          )
-        );
-        const data = results.map(m => ({
-          title: m.Title || 'Unknown',
-          rating: m.imdbRating || 'N/A',
-          year: m.Year || 'N/A',
-          boxOffice: m.BoxOffice || 'N/A'
-        }));
-        setMovies(data);
-        setLoading(false);
-        return;
-      } catch (err) {
-        console.warn('[OMDB] API failed, falling back:', err.message);
-      }
-    }
-
-    // Fallback/Placeholder logic
-    setTimeout(() => {
-      const data = POPULAR_MOVIES.slice(0, 4).map(m => ({
-        ...m,
-        rating: (Math.random() * 2 + 7).toFixed(1),
-        boxOffice: `₹${Math.floor(Math.random() * 500 + 100)}Cr`
-      }));
-      setMovies(data);
-      setLoading(false);
-    }, 800);
+    try { setNews(await fetchNews('entertainment')); }
+    catch { setNews([]); }
+    setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
   return (
     <Panel title="Entertainment" icon={Film} loading={loading} onRefresh={load}>
-      {movies?.map((m, i) => (
-        <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-500 last:border-0">
-          <div>
-            <div className="text-[11px] text-gray-300 font-mono uppercase tracking-widest truncate max-w-[120px]">{m.title}</div>
-            <div className="text-[9px] text-gray-500 font-mono">IMDB {m.rating} · {m.year}</div>
-          </div>
-          <div className="text-[10px] font-mono text-accent">
-            {m.boxOffice}
-          </div>
+      {news?.length === 0 ? (
+        <p className="text-[11px] text-gray-600 text-center py-4">No entertainment updates</p>
+      ) : (
+        <div className="max-h-48 overflow-y-auto space-y-0">
+          {news?.slice(0, 5).map((item, i) => (
+            <NewsItem key={i} title={item.title} source={item.source} time={item.timeAgo} url={item.url} />
+          ))}
         </div>
-      ))}
+      )}
     </Panel>
   );
 }
