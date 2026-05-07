@@ -1,4 +1,4 @@
-const Parser = require('rss-parser');
+import Parser from 'rss-parser';
 
 const parser = new Parser({
   customFields: {
@@ -150,7 +150,7 @@ function dedup(items) {
   });
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
   res.setHeader('Cache-Control', 's-maxage=1200, stale-while-revalidate=600');
@@ -188,4 +188,4 @@ module.exports = async function handler(req, res) {
     .slice(0, 20);
 
   return res.status(200).json({ items, source: state ? `state:${state}` : `national:${category}` });
-};
+}
