@@ -144,92 +144,36 @@ export async function fetchExchangeRates() {
 }
 
 // ─── News (RSS via proxy) ─────────────────────────────────────
-import { fetchRSS, relativeTime } from './fetcher';
-
-const NEWS_FEEDS = {
-  'The Hindu': 'https://www.thehindu.com/news/national/feeder/default.rss',
-  'Indian Express': 'https://indianexpress.com/section/india/feed/',
-  'NDTV': 'https://feeds.feedburner.com/ndtvnews-top-stories',
-  'Times of India': 'https://timesofindia.indiatimes.com/rssfeedstopstories.cms',
-  'Hindustan Times': 'https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml',
-};
-
-const TECH_FEEDS = {
-  'Inc42': 'https://inc42.com/feed/',
-  'YourStory': 'https://yourstory.com/feed',
-};
-
-const POLITICS_FEEDS = {
-  'PIB': 'https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3',
-  'The Hindu Politics': 'https://www.thehindu.com/news/national/feeder/default.rss',
-};
+import { relativeTime } from './fetcher';
 
 export async function fetchNews(category = 'general') {
-  const newsDataKey = import.meta.env.VITE_NEWSDATA_API_KEY;
-  const newsApiKey = import.meta.env.VITE_NEWSAPI_KEY;
-
   return fetchWithCache(`india:news:${category}`, async () => {
-    // 1. Try NewsData.io (Primary)
-    if (newsDataKey) {
-      try {
-        const query = category === 'tech' ? 'technology' : category === 'politics' ? 'politics' : 'india';
-        const data = await fetchJSON(`https://newsdata.io/api/1/latest?apikey=${newsDataKey}&q=${query}&country=in&language=en`);
-        if (data.results?.length > 0) {
-          return data.results.map(item => ({
-            title: item.title,
-            url: item.link,
-            source: item.source_id?.toUpperCase() || 'NewsData',
-            timeAgo: relativeTime(item.pubDate),
-            pubDate: item.pubDate
-          }));
-        }
-      } catch (err) {
-        console.warn('[NewsData] Failed, falling back:', err.message);
-      }
+    try {
+      const res = await fetch(`/api/news?category=${category}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      return (data.items || []);
+    } catch (err) {
+      console.warn(`[News] /api/news failed for category=${category}:`, err.message);
+      return [];
     }
+  }, 20 * 60 * 1000);
+}
 
-    // 2. Try NewsAPI (Secondary)
-    if (newsApiKey) {
-      try {
-        const topic = category === 'tech' ? 'technology' : category === 'politics' ? 'politics' : 'general';
-        const data = await fetchJSON(`https://newsapi.org/v2/top-headlines?apiKey=${newsApiKey}&country=in&category=${topic}`);
-        if (data.articles?.length > 0) {
-          return data.articles.map(item => ({
-            title: item.title,
-            url: item.url,
-            source: item.source?.name || 'NewsAPI',
-            timeAgo: relativeTime(item.publishedAt),
-            pubDate: item.publishedAt
-          }));
-        }
-      } catch (err) {
-        console.warn('[NewsAPI] Failed, falling back:', err.message);
-      }
+
+export async function fetchStateNews(stateCode, stateName, district) {
+  const cacheKey = `india:news:state:${stateCode}`;
+
+  return fetchWithCache(cacheKey, async () => {
+    try {
+      const res = await fetch(`/api/news?state=${stateCode}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      return (data.items || []);
+    } catch (err) {
+      console.warn(`[StateNews] /api/news failed for ${stateCode}:`, err.message);
+      return [];
     }
-
-    // 3. Ultimate Fallback: RSS Feeds
-    const feeds = category === 'tech' ? TECH_FEEDS : 
-                  category === 'politics' ? POLITICS_FEEDS : NEWS_FEEDS;
-    
-    const allItems = [];
-    const feedEntries = Object.entries(feeds);
-    const results = await Promise.allSettled(
-      feedEntries.map(([source, url]) => fetchRSS(url).then(items => 
-        items.map(item => ({ ...item, source }))
-      ))
-    );
-
-    results.forEach(r => {
-      if (r.status === 'fulfilled') allItems.push(...r.value);
-    });
-
-    return allItems
-      .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate))
-      .slice(0, 20)
-      .map(item => ({
-        ...item,
-        timeAgo: relativeTime(item.pubDate),
-      }));
   }, 20 * 60 * 1000);
 }
 

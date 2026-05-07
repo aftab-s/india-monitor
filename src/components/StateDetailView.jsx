@@ -6,7 +6,7 @@ import useAutoRefresh from '../hooks/useAutoRefresh';
 
 import Panel, { StatValue, NewsItem } from './Panel';
 import Footer from './Footer';
-import { fetchStateWeather, fetchNews, fetchDistrictNews, fetchAirQuality, fetchWikipediaSummary, fetchStateInfraNews, fetchGroqIntelligence, STATE_ECONOMY, STATE_DEMOGRAPHICS, STATE_AGRICULTURE, SAFE_REGIONS } from '../services/api';
+import { fetchStateWeather, fetchNews, fetchDistrictNews, fetchStateNews, fetchAirQuality, fetchWikipediaSummary, fetchStateInfraNews, fetchGroqIntelligence, STATE_ECONOMY, STATE_DEMOGRAPHICS, STATE_AGRICULTURE, SAFE_REGIONS } from '../services/api';
 import { REGION_COLORS, STATES } from '../data/constants';
 import { STATE_DISTRICTS, DISTRICT_COORDS } from '../data/districts';
 
@@ -351,23 +351,31 @@ function StateNewsPanel({ state, district }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchDistrictNews(district);
+      const data = await fetchStateNews(state.code, state.name, district);
       setNews(data);
     } catch {
       setNews([]);
     }
     setLoading(false);
-  }, [district]);
+  }, [state.code, state.name, district]);
 
   useEffect(() => { load(); }, [load]);
-  useAutoRefresh(load, 20 * 60000); // Refresh every 20 minutes
+  useAutoRefresh(load, 20 * 60000);
 
+  const hasStateFeeds = ['KL','TN','AP','TS','KA','MH','WB','GJ','RJ','MP','CT','UP','BR','JH','OR','PB','HR','DL','AS','MN','ML','MZ','NL','TR','AR','SK','HP','UK','GA','JK','AN','LA','CH','DD','LD','PY'].includes(state.code);
 
   return (
-    <Panel title={`News Feed: ${district}`} icon={Newspaper} loading={loading} onRefresh={load}>
+    <Panel
+      title={`News Feed: ${district}`}
+      icon={Newspaper}
+      badge={hasStateFeeds ? 'STATE RSS' : 'GDELT'}
+      badgeColor={hasStateFeeds ? 'live' : 'info'}
+      loading={loading}
+      onRefresh={load}
+    >
       {news?.length === 0 ? (
         <div className="py-4 text-center">
-          <p className="text-[10px] text-gray-600 italic">No specific news detected for {district} in the last 24h.</p>
+          <p className="text-[10px] text-gray-600 italic">No news detected for {state.name} in the last 24h.</p>
           <p className="text-[9px] text-gray-700 mt-1 uppercase tracking-tighter">Monitoring National Feeds Instead</p>
         </div>
       ) : (

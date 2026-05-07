@@ -1,0 +1,11 @@
+# Development files
+scripts/
+api/node_modules/
+api/package-lock.json
+
+# Scratch/test files
+scratch/
+
+# Local environment
+.env.local
+*.local
