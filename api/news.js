@@ -139,7 +139,7 @@ const NATIONAL_FEEDS = {
     { source: 'The Hindu', url: 'https://www.thehindu.com/news/national/feeder/default.rss' },
   ],
   politics: [
-    { source: 'The Hindu', url: 'https://www.thehindu.com/news/national/feeder/default.rss' },
+    { source: 'The Hindu Politics', url: 'https://www.thehindu.com/news/national/feeder/default.rss', keywords: ['politics', 'government', 'minister', 'assembly', 'parliament', 'election', 'party', 'bjp', 'congress', 'dmk', 'aiadmk', 'chief minister', 'prime minister'] },
   ],
   tech: [
     { source: 'The Hindu Tech', url: 'https://www.thehindu.com/sci-tech/technology/feeder/default.rss' },
