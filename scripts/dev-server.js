@@ -1,7 +1,10 @@
 //LOCAL
 import http from 'http';
 import { URL } from 'url';
-import handler from './news.js';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const handler = require('../api/news.js');
 
 const PORT = 3001;
 
