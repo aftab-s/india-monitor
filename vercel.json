@@ -1,9 +1,3 @@
 {
-  "regions": ["bom1"],
-  "functions": {
-    "api/news.cjs": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  }
+  "regions": ["bom1"]
 }
