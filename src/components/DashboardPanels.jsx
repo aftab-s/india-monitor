@@ -77,7 +77,12 @@ export default function DashboardPanels({
   
   const [layouts, setLayouts] = useState(() => {
     const saved = localStorage.getItem('india-monitor-layout');
-    return saved ? JSON.parse(saved) : INITIAL_LAYOUTS;
+    if (!saved) return INITIAL_LAYOUTS;
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return INITIAL_LAYOUTS;
+    }
   });
 
   const onLayoutChange = (currentLayout, allLayouts) => {

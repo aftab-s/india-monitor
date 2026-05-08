@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ArrowLeft, MapPin, Thermometer, Wind, Droplets, Shield, Newspaper, Wheat, Activity, Building, Navigation } from 'lucide-react';
+import { ArrowLeft, MapPin, Thermometer, Wind, Droplets, Shield, Newspaper, Wheat, Activity, Building, Navigation, Vote } from 'lucide-react';
 import { Responsive, useContainerWidth } from 'react-grid-layout';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 
@@ -9,6 +9,9 @@ import Footer from './Footer';
 import { fetchStateWeather, fetchNews, fetchDistrictNews, fetchStateNews, fetchAirQuality, fetchWikipediaSummary, fetchStateInfraNews, STATE_ECONOMY, STATE_DEMOGRAPHICS, STATE_AGRICULTURE, SAFE_REGIONS } from '../services/api';
 import { REGION_COLORS, STATES } from '../data/constants';
 import { STATE_DISTRICTS, DISTRICT_COORDS } from '../data/districts';
+import cmsData from '../data/cms.json';
+
+const STATE_LAYOUT_STORAGE_KEY = 'india-monitor-state-layout-v3';
 
 const INITIAL_STATE_LAYOUTS = {
   lg: [
@@ -18,6 +21,7 @@ const INITIAL_STATE_LAYOUTS = {
     { i: 'economy', x: 3, y: 7, w: 1, h: 7 },
     { i: 'aqi', x: 1, y: 5, w: 1, h: 5 },
     { i: 'news', x: 0, y: 16, w: 3, h: 6 },
+    { i: 'cm', x: 0, y: 22, w: 4, h: 6 },
     { i: 'agri', x: 0, y: 10, w: 1, h: 6 },
     { i: 'security', x: 1, y: 10, w: 1, h: 6 },
     { i: 'demographics', x: 0, y: 5, w: 1, h: 5 },
@@ -37,17 +41,23 @@ export default function StateDetailView({ state, onBack }) {
   const { containerRef, width } = useContainerWidth({ initialWidth: 1200 });
   
   const [layouts, setLayouts] = useState(() => {
-    const saved = localStorage.getItem('india-monitor-state-layout');
-    return saved ? JSON.parse(saved) : INITIAL_STATE_LAYOUTS;
+    const saved = localStorage.getItem(STATE_LAYOUT_STORAGE_KEY);
+    if (!saved) return INITIAL_STATE_LAYOUTS;
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return INITIAL_STATE_LAYOUTS;
+    }
   });
 
   const onLayoutChange = (currentLayout, allLayouts) => {
     setLayouts(allLayouts);
-    localStorage.setItem('india-monitor-state-layout', JSON.stringify(allLayouts));
+    localStorage.setItem(STATE_LAYOUT_STORAGE_KEY, JSON.stringify(allLayouts));
   };
 
   const panels = useMemo(() => [
     { id: 'districts', component: <StateDistrictsPanel state={state} selectedDistrict={selectedDistrict || state.capital} onDistrictSelect={setSelectedDistrict} /> },
+    { id: 'cm', component: <StateCmPanel state={state} /> },
     { id: 'intel', component: <IntelligenceBriefPanel district={selectedDistrict || state.capital} state={state} /> },
     { id: 'weather', component: <StateWeatherPanel district={selectedDistrict || state.capital} coords={DISTRICT_COORDS[selectedDistrict || state.capital] || { lat: state.lat, lng: state.lng }} /> },
     { id: 'economy', component: <StateEconomyPanel state={state} /> },
@@ -129,6 +139,105 @@ export default function StateDetailView({ state, onBack }) {
       <Footer />
 
     </div>
+  );
+}
+
+function parseCmsData(data) {
+  if (!Array.isArray(data)) return [];
+  return data
+    .map((row) => ({
+      state: row?.state || '',
+      chiefMinister: row?.chiefMinister || '',
+      rulingParty: row?.rulingParty || '',
+    }))
+    .filter(row => row.state && row.chiefMinister);
+}
+
+function normalizeStateName(name = '') {
+  return name.toLowerCase().replace(/\s*\(ut\)\s*/gi, '').replace(/\s*&\s*/g, 'and').trim();
+}
+
+function buildWikipediaSearchUrl(chiefMinister, stateName) {
+  return `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(`${chiefMinister} ${stateName}`)}`;
+}
+
+async function fetchCmWikipediaSummary(chiefMinister, stateName) {
+  const queries = [
+    `${chiefMinister}, ${stateName}`,
+    `${chiefMinister} ${stateName}`,
+    chiefMinister,
+  ];
+
+  for (const query of queries) {
+    const wiki = await fetchWikipediaSummary(query);
+    const extract = wiki?.extract?.toLowerCase() || '';
+    const isDisambiguation = extract.includes('may refer to:') || extract.includes('may refer to');
+    if (wiki?.extract && !isDisambiguation) return wiki;
+  }
+
+  return null;
+}
+
+function StateCmPanel({ state }) {
+  const [cmData, setCmData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const rows = parseCmsData(cmsData);
+      const stateKey = normalizeStateName(state.name);
+      const row = rows.find(item => normalizeStateName(item.state) === stateKey) || null;
+
+      if (!row) {
+        setCmData(null);
+        setLoading(false);
+        return;
+      }
+
+      const wiki = await fetchCmWikipediaSummary(row.chiefMinister, state.name);
+      setCmData({
+        ...row,
+        thumbnail: wiki?.thumbnail || null,
+        wikiUrl: wiki?.url || buildWikipediaSearchUrl(row.chiefMinister, state.name),
+        extract: wiki?.extract || '',
+      });
+    } catch {
+      setCmData(null);
+    }
+    setLoading(false);
+  }, [state.name]);
+
+  useEffect(() => { load(); }, [load]);
+
+  return (
+    <Panel title={`State Leadership: ${state.name}`} icon={Vote} loading={loading} onRefresh={load} span={2}>
+      {!cmData ? (
+        <p className="text-[10px] text-gray-500 italic">No CM data available for this state.</p>
+      ) : (
+        <div className="flex flex-col md:flex-row gap-4">
+          {cmData.thumbnail && (
+            <img src={cmData.thumbnail} alt={cmData.chiefMinister} className="w-20 h-20 object-cover rounded-none border border-dark-500 opacity-80" />
+          )}
+          <div className="flex-1">
+            <h4 className="text-[11px] font-bold text-gray-200 mb-1 font-mono uppercase tracking-widest">
+              {cmData.chiefMinister}
+            </h4>
+            <p className="text-[10px] text-gray-400 leading-relaxed max-h-24 overflow-y-auto pr-1 font-mono uppercase">
+              {cmData.extract || `${cmData.chiefMinister} is the current Chief Minister of ${state.name}.`}
+            </p>
+            <div className="mt-2 grid grid-cols-1 gap-1 text-[9px] font-mono uppercase tracking-wider">
+              <div className="text-gray-500">Ruling Party: <span className="text-gray-300">{cmData.rulingParty}</span></div>
+            </div>
+            <div className="mt-2 text-right">
+              <a href={cmData.wikiUrl} target="_blank" rel="noreferrer" className="text-[9px] text-accent hover:underline font-mono uppercase tracking-tighter">
+                View CM Dossier →
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+    </Panel>
   );
 }
 

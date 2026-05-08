@@ -13,6 +13,14 @@ export default function Header({
   alertCount = 0
 }) {
   const [showResetModal, setShowResetModal] = useState(false);
+  const resetLayoutStorage = () => {
+    [
+      'india-monitor-layout',
+      'india-monitor-state-layout',
+      'india-monitor-state-layout-v2',
+      'india-monitor-state-layout-v3',
+    ].forEach((key) => localStorage.removeItem(key));
+  };
   const timeStr = currentTime.toLocaleTimeString('en-IN', { 
     timeZone: 'Asia/Kolkata', 
     hour: '2-digit', 
@@ -128,8 +136,7 @@ export default function Header({
         title="SYSTEM RESET"
         message="Are you sure you want to reset all dashboard and state monitoring layouts to factory defaults? This action will reload the system."
         onConfirm={() => {
-          localStorage.removeItem('india-monitor-layout');
-          localStorage.removeItem('india-monitor-state-layout');
+          resetLayoutStorage();
           window.location.reload();
         }}
         onCancel={() => setShowResetModal(false)}
