@@ -1,14 +1,3 @@
-/**
- * Daily-friendly sync: resolves live (or fallback) video ids per channel from news.json,
- * then batches videos.list for snippet + liveStreamingDetails.
- *
- * Env: YOUTUBE_API_KEY — from Google Cloud → YouTube Data API v3 (usually starts with AIza...).
- *
- * Quota (approx. per run): search.list ≈ 100 units × unique valid channel_id
- * (e.g. all Northeast mirror rows share News18 Assam NE → one search for that URL);
- *   videos.list ≈ 1 unit per batch of up to 50 ids. Well within default 10,000/day.
- */
-
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,7 +7,6 @@ const ROOT = join(__dirname, "..");
 const NEWS_PATH = join(ROOT, "news.json");
 const OUT_PATH = join(ROOT, "src", "data", "youtube-live-cache.json");
 
-/** Optional repo-root .env (gitignored); does not override existing env (e.g. CI secrets). */
 async function loadLocalEnv() {
   const p = join(ROOT, ".env");
   let txt;
