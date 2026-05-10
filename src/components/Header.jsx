@@ -14,12 +14,14 @@ export default function Header({
 }) {
   const [showResetModal, setShowResetModal] = useState(false);
   const resetLayoutStorage = () => {
-    [
-      'india-monitor-layout',
-      'india-monitor-state-layout',
-      'india-monitor-state-layout-v2',
-      'india-monitor-state-layout-v3',
-    ].forEach((key) => localStorage.removeItem(key));
+    Object.keys(localStorage).forEach((key) => {
+      if (
+        key === 'india-monitor-layout' ||
+        key.startsWith('india-monitor-state-layout')
+      ) {
+        localStorage.removeItem(key);
+      }
+    });
   };
   const timeStr = currentTime.toLocaleTimeString('en-IN', { 
     timeZone: 'Asia/Kolkata', 

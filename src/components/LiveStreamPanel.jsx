@@ -1,9 +1,18 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Panel from './Panel';
-import { Play, Tv, Video, X, Maximize2, ExternalLink } from 'lucide-react';
+import { Tv, X, Maximize2, ExternalLink } from 'lucide-react';
 
-export default function LiveStreamPanel({ title, youtubeId: rawId, icon: Icon = Tv }) {
+export default function LiveStreamPanel({
+  title,
+  youtubeId: rawId,
+  icon: Icon = Tv,
+  badge = 'LIVE',
+  badgeColor = 'live',
+  className = '',
+  bodyClassName,
+  fillHeight = true,
+}) {
   const [isEnlarged, setIsEnlarged] = useState(false);
 
   const getYoutubeId = (idOrUrl) => {
@@ -24,49 +33,67 @@ export default function LiveStreamPanel({ title, youtubeId: rawId, icon: Icon = 
 
   return (
     <>
-      <Panel 
-        title={title} 
-        icon={Icon} 
-        badge="LIVE" 
-        badgeColor="live"
-        className="h-full group/stream"
+      <Panel
+        title={title}
+        icon={Icon}
+        badge={badge}
+        badgeColor={badgeColor}
+        className={`h-full min-h-0 group/stream ${className}`}
+        bodyClassName={
+          bodyClassName ??
+          (fillHeight
+            ? 'p-3 overflow-hidden flex flex-col flex-1 min-h-0 gap-2'
+            : 'p-3 overflow-hidden flex flex-col gap-2')
+        }
       >
-        <div 
-          onClick={() => setIsEnlarged(true)}
-          className="relative w-full h-full bg-black overflow-hidden cursor-zoom-in border border-dark-700/50 group-hover:border-accent/40 transition-colors"
+        <div
+          className={
+            fillHeight
+              ? 'flex flex-col flex-1 min-h-0 gap-2'
+              : 'flex flex-col gap-2'
+          }
         >
-          {/* Minimal Preview Video */}
-          <div className="absolute inset-0 pointer-events-none grayscale opacity-60 group-hover/stream:opacity-100 group-hover/stream:grayscale-0 transition-all duration-500">
-            <iframe
-              width="100%"
-              height="100%"
-              src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&rel=0&modestbranding=1&controls=0&showinfo=0&iv_load_policy=3&disablekb=1&fs=0`}
-              title={title}
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              className="scale-[1.1]" // Hide tiny edge artifacts
-            />
-          </div>
+          <div
+            onClick={() => setIsEnlarged(true)}
+            className={
+              fillHeight
+                ? 'relative w-full flex-1 min-h-[180px] bg-black overflow-hidden cursor-zoom-in border border-dark-700/50 group-hover:border-accent/40 transition-colors'
+                : 'relative w-full aspect-video bg-black overflow-hidden cursor-zoom-in border border-dark-700/50 group-hover:border-accent/40 transition-colors shrink-0'
+            }
+          >
+            {/* Minimal Preview Video */}
+            <div className="absolute inset-0 pointer-events-none grayscale opacity-60 group-hover/stream:opacity-100 group-hover/stream:grayscale-0 transition-all duration-500">
+              <iframe
+                width="100%"
+                height="100%"
+                src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&rel=0&modestbranding=1&controls=0&showinfo=0&iv_load_policy=3&disablekb=1&fs=0`}
+                title={title}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                className="scale-[1.1]"
+              />
+            </div>
 
+            {/* CRT / Monitor Overlay */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(circle,white_1px,transparent_1px)] bg-[size:3px_3px]" />
+              <div className="absolute inset-0 scanline opacity-20" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+            </div>
 
-          {/* CRT / Monitor Overlay */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(circle,white_1px,transparent_1px)] bg-[size:3px_3px]" />
-            <div className="absolute inset-0 scanline opacity-20" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
-          </div>
-
-          {/* Hover UI */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/stream:opacity-100 transition-opacity duration-300">
-            <div className="bg-black/60 backdrop-blur-md border border-white/10 p-2 rounded-full transform scale-90 group-hover/stream:scale-100 transition-transform">
-              <Maximize2 size={16} className="text-white" />
+            {/* Hover UI */}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover/stream:opacity-100">
+              <div className="bg-black/60 backdrop-blur-md border border-white/10 p-2 rounded-full transform scale-90 group-hover/stream:scale-100 transition-transform">
+                <Maximize2 size={16} className="text-white" />
+              </div>
             </div>
           </div>
 
-          {/* Status Text overlay */}
-          <div className="absolute bottom-2 left-2 flex items-center gap-1.5 opacity-60 group-hover/stream:opacity-100 transition-opacity">
-            <div className="w-1 h-1 rounded-full bg-accent animate-pulse" />
-            <span className="text-[8px] font-mono text-gray-400 tracking-widest uppercase">Signal Active</span>
+          <div className="flex shrink-0 items-center gap-1.5 px-0.5">
+            <div className="h-1 w-1 animate-pulse rounded-full bg-accent" />
+            <span className="text-[8px] font-mono tracking-widest text-gray-500 uppercase">
+              Signal active
+            </span>
           </div>
         </div>
       </Panel>
@@ -111,7 +138,7 @@ export default function LiveStreamPanel({ title, youtubeId: rawId, icon: Icon = 
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
-              className="w-full h-full"
+              className="h-full w-full"
             />
 
             {/* Corner Decorative Elements */}
