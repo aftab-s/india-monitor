@@ -2,7 +2,7 @@
 // Routes any /api/<name> request to api/<name>.js dynamically.
 // Also loads .env so API keys (like INDIAN_API_KEY) are available via process.env.
 import http from 'http';
-import { URL } from 'url';
+import { URL, pathToFileURL } from 'url';
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -54,8 +54,10 @@ const server = http.createServer(async (req, res) => {
   };
 
   try {
-    // Cache-bust so edits to handler files are picked up immediately
-    const { default: handler } = await import(`${handlerPath}?t=${Date.now()}`);
+    // Cache-bust so edits to handler files are picked up immediately.
+    // Convert to file:// URL so dynamic import() works on Windows (rejects c:\... paths).
+    const handlerUrl = `${pathToFileURL(handlerPath).href}?t=${Date.now()}`;
+    const { default: handler } = await import(handlerUrl);
     await handler(req, res);
     console.log(`[dev-server] ${req.method} ${pathname} → api/${handlerName}.js`);
   } catch (err) {

@@ -10,6 +10,7 @@
     "dev": "vite",
     "dev:api": "node scripts/dev-server.js",
     "youtube:sync": "node scripts/sync-youtube-live.mjs",
+    "fuel:sync": "node scripts/sync-fuel-prices.mjs",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
