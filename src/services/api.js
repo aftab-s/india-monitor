@@ -493,6 +493,108 @@ export async function fetchFuelPrices(stateName) {
 }
 
 
+// ─── Petrol Pumps (via backend proxy → /api/pumps) ────────────
+// Uses ssrinnovationlab.com API (free, no key). Proxy handles CORS
+// and CDN caching. Falls back to direct call in local dev.
+export async function fetchPetrolPumps(city, limit = 10) {
+  return fetchWithCache(`india:pumps:${city}:${limit}`, async () => {
+    async function tryFetch() {
+      // ── Try backend proxy first
+      try {
+        const proxyRes = await fetch(`/api/pumps?city=${encodeURIComponent(city)}&limit=${limit}`);
+        if (proxyRes.ok) return await proxyRes.json();
+      } catch { /* proxy not available */ }
+
+      // ── Fallback: direct call (local dev)
+      try {
+        const directRes = await fetch(
+          `https://api.ssrinnovationlab.com/api/petrol-pumps/pumps/by-city/?city=${encodeURIComponent(city)}&limit=${limit}`
+        );
+        if (directRes.ok) {
+          console.warn(`[Pumps] Using direct API call (start dev:api to use proxy)`);
+          return await directRes.json();
+        }
+      } catch (err) {
+        console.warn('[Pumps] Direct fallback failed:', err.message);
+      }
+      return { count: 0, results: [] };
+    }
+
+    try {
+      return await tryFetch();
+    } catch (err) {
+      console.warn('[Pumps Error]', err);
+      return { count: 0, results: [] };
+    }
+  }, 6 * 60 * 60 * 1000); // 6 hours cache
+}
+
+// ─── EV Charging Stations (via backend proxy → /api/ev) ───────
+// Uses OpenStreetMap Overpass API (free, no key). Proxy handles CORS
+// and CDN caching. Falls back to direct call in local dev.
+export async function fetchEVStations(city) {
+  return fetchWithCache(`india:ev:${city}`, async () => {
+    const query = `
+      [out:json][timeout:25];
+      area["name"="${city}"]->.searchArea;
+      (
+        node["amenity"="charging_station"](area.searchArea);
+        way["amenity"="charging_station"](area.searchArea);
+      );
+      out body;
+      >;
+      out skel qt;
+    `;
+
+    async function tryFetch() {
+      // ── Try backend proxy first
+      try {
+        const proxyRes = await fetch(`/api/ev?city=${encodeURIComponent(city)}`);
+        if (proxyRes.ok) return await proxyRes.json();
+      } catch { /* proxy not available */ }
+
+      // ── Fallback: direct call (local dev)
+      try {
+        const endpoint = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
+        const directRes = await fetch(endpoint);
+        if (directRes.ok) {
+          console.warn(`[EV] Using direct API call (start dev:api to use proxy)`);
+          const data = await directRes.json();
+          const results = data.elements
+            .filter(el => el.tags && el.tags.amenity === 'charging_station')
+            .map(el => {
+              const lat = el.lat || (el.center && el.center.lat);
+              const lng = el.lon || (el.center && el.center.lon);
+              return {
+                id: el.id,
+                name: el.tags.name || 'EV Charging Station',
+                operator: el.tags.operator || 'Unknown Operator',
+                network: el.tags.network || el.tags.brand || 'Unknown Network',
+                capacity: el.tags.capacity || 'N/A',
+                socket: el.tags['socket:type2'] ? 'Type 2' : (el.tags.socket ? el.tags.socket : 'Standard'),
+                lat,
+                lng,
+                address: el.tags['addr:full'] || el.tags['addr:street'] || 'Address not available',
+                direction_link: lat && lng ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}` : null
+              };
+            });
+          return { count: results.length, results };
+        }
+      } catch (err) {
+        console.warn('[EV] Direct fallback failed:', err.message);
+      }
+      return { count: 0, results: [] };
+    }
+
+    try {
+      return await tryFetch();
+    } catch (err) {
+      console.warn('[EV Error]', err);
+      return { count: 0, results: [] };
+    }
+  }, 12 * 60 * 60 * 1000); // 12 hours cache
+}
+
 
 // Simplified static data retainers
 export function getRbiPolicyRates() {

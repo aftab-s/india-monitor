@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ArrowLeft, MapPin, Thermometer, Wind, Droplets, Shield, Newspaper, Wheat, Activity, Building, Navigation, Vote, Fuel } from 'lucide-react';
+import { ArrowLeft, MapPin, Thermometer, Wind, Droplets, Shield, Newspaper, Wheat, Activity, Building, Navigation, Vote, Fuel, MapPinned, Clock, ExternalLink } from 'lucide-react';
 import { Responsive, useContainerWidth } from 'react-grid-layout';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 
@@ -7,13 +7,13 @@ import useAutoRefresh from '../hooks/useAutoRefresh';
 import Panel, { StatValue, NewsItem } from './Panel';
 import LiveStreamPanel from './LiveStreamPanel';
 import Footer from './Footer';
-import { fetchStateWeather, fetchNews, fetchDistrictNews, fetchStateNews, fetchAirQuality, fetchWikipediaSummary, fetchStateInfraNews, fetchFuelPrices, STATE_ECONOMY, STATE_DEMOGRAPHICS, STATE_AGRICULTURE, SAFE_REGIONS } from '../services/api';
+import { fetchStateWeather, fetchNews, fetchDistrictNews, fetchStateNews, fetchAirQuality, fetchWikipediaSummary, fetchStateInfraNews, fetchFuelPrices, fetchPetrolPumps, STATE_ECONOMY, STATE_DEMOGRAPHICS, STATE_AGRICULTURE, SAFE_REGIONS } from '../services/api';
 import { REGION_COLORS, STATES } from '../data/constants';
 import { STATE_DISTRICTS, DISTRICT_COORDS } from '../data/districts';
 import cmsData from '../data/cms.json';
 import youtubeLiveCache from '../data/youtube-live-cache.json';
 
-const STATE_LAYOUT_STORAGE_KEY = 'india-monitor-state-layout-v11';
+const STATE_LAYOUT_STORAGE_KEY = 'india-monitor-state-layout-v13';
 
 const INITIAL_STATE_LAYOUTS = {
   lg: [
@@ -30,6 +30,7 @@ const INITIAL_STATE_LAYOUTS = {
     { i: 'security', x: 1, y: 10, w: 1, h: 6 },
     { i: 'demographics', x: 0, y: 5, w: 1, h: 5 },
     { i: 'infra', x: 3, y: 14, w: 1, h: 8 },
+    { i: 'pumps', x: 0, y: 30, w: 4, h: 10 },
   ]
 };
 
@@ -73,6 +74,7 @@ export default function StateDetailView({ state, onBack }) {
     { id: 'demographics', component: <StateDemographicsPanel state={state} /> },
     { id: 'infra', component: <StateInfraPanel state={state} /> },
     { id: 'fuel', component: <StateFuelPanel state={state} /> },
+    { id: 'pumps', component: <StatePetrolPumpsPanel state={state} district={selectedDistrict || state.capital} /> },
   ], [state, selectedDistrict]);
 
 
@@ -764,3 +766,125 @@ function StateFuelPanel({ state }) {
     </Panel>
   );
 }
+
+// ─── State Petrol Pumps Panel ─────────────────────────────────
+const COMPANY_COLORS = {
+  IOCL: '#1a237e', HPCL: '#006400', BPCL: '#d32f2f',
+  Shell: '#ffdd00', 'Jio-bp': '#0066b3', Nayara: '#e91e63',
+  Reliance: '#1565c0',
+};
+
+function StatePetrolPumpsPanel({ state, district }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await fetchPetrolPumps(district, 10);
+      setData(result);
+    } catch {
+      setData({ count: 0, results: [] });
+    }
+    setLoading(false);
+  }, [district]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const pumps = data?.results || [];
+
+  return (
+    <Panel
+      title={`Fuel Stations: ${district}`}
+      icon={MapPinned}
+      badge={pumps.length > 0 ? `${data?.count || pumps.length} Found` : null}
+      badgeColor="info"
+      loading={loading}
+      onRefresh={load}
+      bodyClassName="p-0 overflow-auto min-h-0"
+    >
+      {pumps.length === 0 ? (
+        <div className="py-6 text-center">
+          <p className="text-[10px] text-gray-600 font-mono uppercase">No fuel stations found near {district}</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-dark-500">
+          {pumps.map((pump) => (
+            <div key={pump.id} className="px-3 py-2.5 hover:bg-dark-600/30 transition-colors group">
+              {/* Row 1: Name + Company badge */}
+              <div className="flex items-start justify-between gap-2 mb-1.5">
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-[10px] font-mono text-gray-300 uppercase tracking-wider leading-snug line-clamp-1 group-hover:text-white transition-colors">
+                    {pump.pump_name || pump.name}
+                  </h4>
+                </div>
+                <span
+                  className="text-[8px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5 border border-dark-500 rounded-none flex-shrink-0"
+                  style={{
+                    color: COMPANY_COLORS[pump.company] || '#888',
+                    borderColor: COMPANY_COLORS[pump.company] || '#444',
+                  }}
+                >
+                  {pump.company}
+                </span>
+              </div>
+
+              {/* Row 2: Prices */}
+              <div className="flex items-center gap-3 mb-1.5">
+                {pump.has_petrol && pump.petrol_price && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-[8px] text-gray-600 font-mono uppercase">Petrol</span>
+                    <span className="text-[11px] font-mono font-bold text-amber-400">₹{pump.petrol_price}</span>
+                  </div>
+                )}
+                {pump.has_diesel && pump.diesel_price && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-[8px] text-gray-600 font-mono uppercase">Diesel</span>
+                    <span className="text-[11px] font-mono font-bold text-blue-400">₹{pump.diesel_price}</span>
+                  </div>
+                )}
+                {pump.has_cng && pump.cng_price && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-[8px] text-gray-600 font-mono uppercase">CNG</span>
+                    <span className="text-[11px] font-mono font-bold text-green-400">₹{pump.cng_price}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Row 3: Address + Timing + Directions */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  {pump.address && pump.address !== 'Address not available' && (
+                    <span className="text-[9px] text-gray-600 font-mono uppercase truncate max-w-[200px]">
+                      {pump.address}
+                    </span>
+                  )}
+                  {pump.station_timing && (
+                    <span className={`text-[8px] font-mono uppercase tracking-wider flex items-center gap-0.5 flex-shrink-0 ${
+                      pump.station_timing === '24 Hours' ? 'text-up' : 'text-gray-500'
+                    }`}>
+                      <Clock size={8} />
+                      {pump.station_timing}
+                    </span>
+                  )}
+                </div>
+                {pump.direction_link && (
+                  <a
+                    href={pump.direction_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-0.5 text-[8px] text-accent hover:text-white font-mono uppercase tracking-tighter flex-shrink-0 transition-colors"
+                  >
+                    <ExternalLink size={8} />
+                    Directions
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Panel>
+  );
+}
+
