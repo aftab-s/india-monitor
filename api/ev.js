@@ -13,25 +13,38 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { city } = req.query;
+  const { city, lat, lng } = req.query;
 
   if (!city) {
     return res.status(400).json({ error: 'city parameter is required' });
   }
 
   // Construct Overpass QL query
-  // We search for nodes and ways with amenity=charging_station within the area of the city
-  const query = `
-    [out:json][timeout:25];
-    area["name"="${city}"]->.searchArea;
-    (
-      node["amenity"="charging_station"](area.searchArea);
-      way["amenity"="charging_station"](area.searchArea);
-    );
-    out body;
-    >;
-    out skel qt;
-  `;
+  let query;
+  if (lat && lng) {
+    query = `
+      [out:json][timeout:15];
+      (
+        node["amenity"="charging_station"](around:20000,${lat},${lng});
+        way["amenity"="charging_station"](around:20000,${lat},${lng});
+      );
+      out body;
+      >;
+      out skel qt;
+    `;
+  } else {
+    query = `
+      [out:json][timeout:25];
+      area["name"="${city}"]->.searchArea;
+      (
+        node["amenity"="charging_station"](area.searchArea);
+        way["amenity"="charging_station"](area.searchArea);
+      );
+      out body;
+      >;
+      out skel qt;
+    `;
+  }
 
   try {
     const endpoint = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
@@ -47,13 +60,21 @@ export default async function handler(req, res) {
     const data = await upstream.json();
     
     // Process the data to make it simpler for the frontend
-    // Overpass returns a list of elements. We want to extract coordinates and tags.
     const results = data.elements
       .filter(el => el.tags && el.tags.amenity === 'charging_station')
       .map(el => {
-        const lat = el.lat || (el.center && el.center.lat);
-        const lng = el.lon || (el.center && el.center.lon);
+        const stationLat = el.lat || (el.center && el.center.lat);
+        const stationLng = el.lon || (el.center && el.center.lon);
         
+        // Build address
+        let addressParts = [];
+        if (el.tags['addr:street']) addressParts.push(el.tags['addr:street']);
+        if (el.tags['addr:suburb']) addressParts.push(el.tags['addr:suburb']);
+        if (el.tags['addr:neighbourhood']) addressParts.push(el.tags['addr:neighbourhood']);
+        if (el.tags['addr:city']) addressParts.push(el.tags['addr:city']);
+        
+        const address = el.tags['addr:full'] || (addressParts.length > 0 ? addressParts.join(', ') : `${city} Region`);
+
         return {
           id: el.id,
           name: el.tags.name || 'EV Charging Station',
@@ -61,10 +82,10 @@ export default async function handler(req, res) {
           network: el.tags.network || el.tags.brand || 'Unknown Network',
           capacity: el.tags.capacity || 'N/A',
           socket: el.tags['socket:type2'] ? 'Type 2' : (el.tags.socket ? el.tags.socket : 'Standard'),
-          lat,
-          lng,
-          address: el.tags['addr:full'] || el.tags['addr:street'] || 'Address not available',
-          direction_link: lat && lng ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}` : null
+          lat: stationLat,
+          lng: stationLng,
+          address: address,
+          direction_link: stationLat && stationLng ? `https://www.google.com/maps/dir/?api=1&destination=${stationLat},${stationLng}` : null
         };
       });
 
