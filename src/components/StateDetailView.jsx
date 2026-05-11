@@ -5,13 +5,15 @@ import useAutoRefresh from '../hooks/useAutoRefresh';
 
 
 import Panel, { StatValue, NewsItem } from './Panel';
+import LiveStreamPanel from './LiveStreamPanel';
 import Footer from './Footer';
 import { fetchStateWeather, fetchNews, fetchDistrictNews, fetchStateNews, fetchAirQuality, fetchWikipediaSummary, fetchStateInfraNews, STATE_ECONOMY, STATE_DEMOGRAPHICS, STATE_AGRICULTURE, SAFE_REGIONS } from '../services/api';
 import { REGION_COLORS, STATES } from '../data/constants';
 import { STATE_DISTRICTS, DISTRICT_COORDS } from '../data/districts';
 import cmsData from '../data/cms.json';
+import youtubeLiveCache from '../data/youtube-live-cache.json';
 
-const STATE_LAYOUT_STORAGE_KEY = 'india-monitor-state-layout-v3';
+const STATE_LAYOUT_STORAGE_KEY = 'india-monitor-state-layout-v10';
 
 const INITIAL_STATE_LAYOUTS = {
   lg: [
@@ -21,7 +23,8 @@ const INITIAL_STATE_LAYOUTS = {
     { i: 'economy', x: 3, y: 7, w: 1, h: 7 },
     { i: 'aqi', x: 1, y: 5, w: 1, h: 5 },
     { i: 'news', x: 0, y: 16, w: 3, h: 6 },
-    { i: 'cm', x: 0, y: 22, w: 4, h: 6 },
+    { i: 'cm', x: 0, y: 22, w: 3, h: 8 },
+    { i: 'broadcast', x: 3, y: 22, w: 1, h: 8 },
     { i: 'agri', x: 0, y: 10, w: 1, h: 6 },
     { i: 'security', x: 1, y: 10, w: 1, h: 6 },
     { i: 'demographics', x: 0, y: 5, w: 1, h: 5 },
@@ -58,6 +61,7 @@ export default function StateDetailView({ state, onBack }) {
   const panels = useMemo(() => [
     { id: 'districts', component: <StateDistrictsPanel state={state} selectedDistrict={selectedDistrict || state.capital} onDistrictSelect={setSelectedDistrict} /> },
     { id: 'cm', component: <StateCmPanel state={state} /> },
+    { id: 'broadcast', component: <StateBroadcastPanel state={state} /> },
     { id: 'intel', component: <IntelligenceBriefPanel district={selectedDistrict || state.capital} state={state} /> },
     { id: 'weather', component: <StateWeatherPanel district={selectedDistrict || state.capital} coords={DISTRICT_COORDS[selectedDistrict || state.capital] || { lat: state.lat, lng: state.lng }} /> },
     { id: 'economy', component: <StateEconomyPanel state={state} /> },
@@ -149,6 +153,7 @@ function parseCmsData(data) {
       state: row?.state || '',
       chiefMinister: row?.chiefMinister || '',
       rulingParty: row?.rulingParty || '',
+      wikipediaTitle: typeof row?.wikipediaTitle === 'string' ? row.wikipediaTitle : '',
     }))
     .filter(row => row.state && row.chiefMinister);
 }
@@ -157,16 +162,25 @@ function normalizeStateName(name = '') {
   return name.toLowerCase().replace(/\s*\(ut\)\s*/gi, '').replace(/\s*&\s*/g, 'and').trim();
 }
 
+/** Match app state.name to youtube-live-cache.json entry (`state` may use `&` vs `and`). */
+function youtubeFeedForState(stateName) {
+  const entries = youtubeLiveCache?.entries;
+  if (!Array.isArray(entries)) return null;
+  const key = normalizeStateName(stateName);
+  return entries.find((e) => normalizeStateName(e?.state ?? '') === key) || null;
+}
+
 function buildWikipediaSearchUrl(chiefMinister, stateName) {
   return `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(`${chiefMinister} ${stateName}`)}`;
 }
 
-async function fetchCmWikipediaSummary(chiefMinister, stateName) {
+async function fetchCmWikipediaSummary(chiefMinister, stateName, wikipediaTitle = '') {
   const queries = [
+    wikipediaTitle,
     `${chiefMinister}, ${stateName}`,
     `${chiefMinister} ${stateName}`,
     chiefMinister,
-  ];
+  ].filter(Boolean);
 
   for (const query of queries) {
     const wiki = await fetchWikipediaSummary(query);
@@ -195,11 +209,11 @@ function StateCmPanel({ state }) {
         return;
       }
 
-      const wiki = await fetchCmWikipediaSummary(row.chiefMinister, state.name);
+      const wiki = await fetchCmWikipediaSummary(row.chiefMinister, state.name, row.wikipediaTitle);
       setCmData({
         ...row,
         thumbnail: wiki?.thumbnail || null,
-        wikiUrl: wiki?.url || buildWikipediaSearchUrl(row.chiefMinister, state.name),
+        wikiUrl: wiki?.url || buildWikipediaSearchUrl(row.wikipediaTitle || row.chiefMinister, state.name),
         extract: wiki?.extract || '',
       });
     } catch {
@@ -210,34 +224,91 @@ function StateCmPanel({ state }) {
 
   useEffect(() => { load(); }, [load]);
 
+  const cmSkeleton = (
+    <div className="space-y-2.5 py-1">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="skeleton-shimmer h-4" style={{ width: `${75 - i * 10}%` }} />
+      ))}
+    </div>
+  );
+
+  const leadershipBlock =
+    loading
+      ? cmSkeleton
+      : !cmData
+        ? (
+            <p className="text-[10px] text-gray-500 italic">No CM data available for this state.</p>
+          )
+        : (
+            <div className="flex flex-col sm:flex-row gap-4">
+              {cmData.thumbnail && (
+                <img src={cmData.thumbnail} alt={cmData.chiefMinister} className="w-20 h-20 object-cover rounded-none border border-dark-500 opacity-80 shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <h4 className="text-[11px] font-bold text-gray-200 mb-1 font-mono uppercase tracking-widest">
+                  {cmData.chiefMinister}
+                </h4>
+                <p className="text-[10px] text-gray-400 leading-relaxed pr-1 font-mono uppercase line-clamp-6">
+                  {cmData.extract || `${cmData.chiefMinister} is the current Chief Minister of ${state.name}.`}
+                </p>
+                <div className="mt-2 grid grid-cols-1 gap-1 text-[9px] font-mono uppercase tracking-wider">
+                  <div className="text-gray-500">
+                    Ruling Party:{' '}
+                    <span className="text-gray-300">{cmData.rulingParty}</span>
+                  </div>
+                </div>
+                <div className="mt-2 text-right">
+                  <a
+                    href={cmData.wikiUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[9px] text-accent hover:underline font-mono uppercase tracking-tighter"
+                  >
+                    View CM Dossier →
+                  </a>
+                </div>
+              </div>
+            </div>
+          );
+
   return (
-    <Panel title={`State Leadership: ${state.name}`} icon={Vote} loading={loading} onRefresh={load} span={2}>
-      {!cmData ? (
-        <p className="text-[10px] text-gray-500 italic">No CM data available for this state.</p>
-      ) : (
-        <div className="flex flex-col md:flex-row gap-4">
-          {cmData.thumbnail && (
-            <img src={cmData.thumbnail} alt={cmData.chiefMinister} className="w-20 h-20 object-cover rounded-none border border-dark-500 opacity-80" />
-          )}
-          <div className="flex-1">
-            <h4 className="text-[11px] font-bold text-gray-200 mb-1 font-mono uppercase tracking-widest">
-              {cmData.chiefMinister}
-            </h4>
-            <p className="text-[10px] text-gray-400 leading-relaxed max-h-24 overflow-y-auto pr-1 font-mono uppercase">
-              {cmData.extract || `${cmData.chiefMinister} is the current Chief Minister of ${state.name}.`}
-            </p>
-            <div className="mt-2 grid grid-cols-1 gap-1 text-[9px] font-mono uppercase tracking-wider">
-              <div className="text-gray-500">Ruling Party: <span className="text-gray-300">{cmData.rulingParty}</span></div>
-            </div>
-            <div className="mt-2 text-right">
-              <a href={cmData.wikiUrl} target="_blank" rel="noreferrer" className="text-[9px] text-accent hover:underline font-mono uppercase tracking-tighter">
-                View CM Dossier →
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
+    <Panel
+      title={`State Leadership: ${state.name}`}
+      icon={Vote}
+      onRefresh={load}
+      span={2}
+      bodyClassName="p-3 overflow-auto min-h-0"
+    >
+      {leadershipBlock}
     </Panel>
+  );
+}
+
+function StateBroadcastPanel({ state }) {
+  const youtubeFeed = useMemo(() => youtubeFeedForState(state.name), [state.name]);
+  const videoId = youtubeFeed?.resolved_video_id?.trim?.() || null;
+  const isLiveNow = youtubeFeed?.liveBroadcastContent === 'live';
+  const streamTitle = (youtubeFeed?.channel || `${state.name} regional feed`).toUpperCase();
+
+  if (!videoId) {
+    return (
+      <Panel title="Regional News Feed" icon={Newspaper} badge="OFFLINE" badgeColor="warning">
+        <div className="flex h-full min-h-24 items-center justify-center text-center">
+          <p className="text-[10px] text-gray-600 font-mono uppercase">
+            No regional broadcast feed configured for {state.name}.
+          </p>
+        </div>
+      </Panel>
+    );
+  }
+
+  return (
+    <LiveStreamPanel
+      title={streamTitle}
+      youtubeId={videoId}
+      badge={isLiveNow ? 'LIVE' : 'FEED'}
+      badgeColor={isLiveNow ? 'live' : 'info'}
+    />
   );
 }
 

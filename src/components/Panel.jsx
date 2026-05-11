@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { RefreshCw, ChevronDown, ChevronUp, AlertCircle, GripVertical } from 'lucide-react';
 
 
-export default function Panel({ title, icon: Icon, children, className = '', badge, badgeColor = 'accent', onRefresh, loading, error, span = 1 }) {
+export default function Panel({ title, icon: Icon, children, className = '', badge, badgeColor = 'accent', onRefresh, loading, error, span = 1, bodyClassName }) {
   const [collapsed, setCollapsed] = useState(false);
 
   const badgeColors = {
@@ -52,7 +52,7 @@ export default function Panel({ title, icon: Icon, children, className = '', bad
       </div>
 
       {/* Content */}
-      <div className={`p-3 flex-1 overflow-auto transition-all duration-300 ${collapsed ? 'opacity-0 h-0 p-0 pointer-events-none' : 'opacity-100'}`}>
+      <div className={`flex-1 min-h-0 transition-all duration-300 ${collapsed ? 'opacity-0 h-0 p-0 pointer-events-none overflow-hidden' : 'opacity-100'} ${bodyClassName ?? 'p-3 overflow-auto'}`}>
 
           {loading ? (
             <div className="space-y-2.5">
