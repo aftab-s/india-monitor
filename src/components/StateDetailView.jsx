@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ArrowLeft, MapPin, Thermometer, Wind, Droplets, Shield, Newspaper, Wheat, Activity, Building, Navigation, Vote } from 'lucide-react';
+import { ArrowLeft, MapPin, Thermometer, Wind, Droplets, Shield, Newspaper, Wheat, Activity, Building, Navigation, Vote, Fuel } from 'lucide-react';
 import { Responsive, useContainerWidth } from 'react-grid-layout';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 
@@ -7,13 +7,13 @@ import useAutoRefresh from '../hooks/useAutoRefresh';
 import Panel, { StatValue, NewsItem } from './Panel';
 import LiveStreamPanel from './LiveStreamPanel';
 import Footer from './Footer';
-import { fetchStateWeather, fetchNews, fetchDistrictNews, fetchStateNews, fetchAirQuality, fetchWikipediaSummary, fetchStateInfraNews, STATE_ECONOMY, STATE_DEMOGRAPHICS, STATE_AGRICULTURE, SAFE_REGIONS } from '../services/api';
+import { fetchStateWeather, fetchNews, fetchDistrictNews, fetchStateNews, fetchAirQuality, fetchWikipediaSummary, fetchStateInfraNews, fetchFuelPrices, STATE_ECONOMY, STATE_DEMOGRAPHICS, STATE_AGRICULTURE, SAFE_REGIONS } from '../services/api';
 import { REGION_COLORS, STATES } from '../data/constants';
 import { STATE_DISTRICTS, DISTRICT_COORDS } from '../data/districts';
 import cmsData from '../data/cms.json';
 import youtubeLiveCache from '../data/youtube-live-cache.json';
 
-const STATE_LAYOUT_STORAGE_KEY = 'india-monitor-state-layout-v10';
+const STATE_LAYOUT_STORAGE_KEY = 'india-monitor-state-layout-v11';
 
 const INITIAL_STATE_LAYOUTS = {
   lg: [
@@ -23,7 +23,8 @@ const INITIAL_STATE_LAYOUTS = {
     { i: 'economy', x: 3, y: 7, w: 1, h: 7 },
     { i: 'aqi', x: 1, y: 5, w: 1, h: 5 },
     { i: 'news', x: 0, y: 16, w: 3, h: 6 },
-    { i: 'cm', x: 0, y: 22, w: 3, h: 8 },
+    { i: 'cm', x: 0, y: 22, w: 2, h: 8 },
+    { i: 'fuel', x: 2, y: 22, w: 1, h: 8 },
     { i: 'broadcast', x: 3, y: 22, w: 1, h: 8 },
     { i: 'agri', x: 0, y: 10, w: 1, h: 6 },
     { i: 'security', x: 1, y: 10, w: 1, h: 6 },
@@ -71,6 +72,7 @@ export default function StateDetailView({ state, onBack }) {
     { id: 'security', component: <StateSecurityPanel state={state} /> },
     { id: 'demographics', component: <StateDemographicsPanel state={state} /> },
     { id: 'infra', component: <StateInfraPanel state={state} /> },
+    { id: 'fuel', component: <StateFuelPanel state={state} /> },
   ], [state, selectedDistrict]);
 
 
@@ -696,6 +698,67 @@ function StateInfraPanel({ state }) {
           {news?.map((item, i) => (
             <NewsItem key={i} title={item.title} source={item.source} time={item.timeAgo} url={item.url} />
           ))}
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+// ─── State Fuel Panel ─────────────────────────────────────────
+function StateFuelPanel({ state }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try { setData(await fetchFuelPrices(state.name)); }
+    catch { setData(null); }
+    setLoading(false);
+  }, [state.name]);
+
+  useEffect(() => { load(); }, [load]);
+  useAutoRefresh(load, 24 * 60 * 60000); // 24 hours — matches server CDN cache
+
+  return (
+    <Panel title="Fuel Rates" icon={Fuel} badge="LIVE" badgeColor="live" loading={loading} onRefresh={load}>
+      {data ? (
+        <>
+          <div className="flex flex-col gap-4 mt-2">
+            <div>
+              <div className="text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1">Petrol</div>
+              {data.petrol ? (
+                <div className="flex items-end gap-2">
+                  <span className="text-2xl font-bold font-mono text-white">₹{data.petrol.price}</span>
+                  {data.petrol.change && data.petrol.change !== '0.00' && (
+                    <span className={`text-[10px] font-mono mb-1 ${parseFloat(data.petrol.change) > 0 ? 'text-down' : 'text-up'}`}>
+                      {parseFloat(data.petrol.change) > 0 ? '▲' : '▼'} {Math.abs(data.petrol.change)}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-[10px] text-gray-600 font-mono">N/A</span>
+              )}
+            </div>
+            <div>
+              <div className="text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1">Diesel</div>
+              {data.diesel ? (
+                <div className="flex items-end gap-2">
+                  <span className="text-2xl font-bold font-mono text-white">₹{data.diesel.price}</span>
+                  {data.diesel.change && data.diesel.change !== '0.00' && (
+                    <span className={`text-[10px] font-mono mb-1 ${parseFloat(data.diesel.change) > 0 ? 'text-down' : 'text-up'}`}>
+                      {parseFloat(data.diesel.change) > 0 ? '▲' : '▼'} {Math.abs(data.diesel.change)}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-[10px] text-gray-600 font-mono">N/A</span>
+              )}
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="py-4 text-center">
+          <p className="text-[10px] text-gray-600 italic">Fuel data unavailable</p>
         </div>
       )}
     </Panel>

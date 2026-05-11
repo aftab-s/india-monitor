@@ -434,6 +434,66 @@ export {
   SAFE_REGIONS
 };
 
+// ─── Fuel Prices (via backend proxy → /api/fuel) ──────────────
+// In production (Vercel): calls /api/fuel serverless function — API key stays
+// hidden server-side, CDN caches for 24 h across all users.
+// In local dev (without dev:api running): falls back to calling IndianAPI
+// directly using the VITE_ key so you can still develop without two terminals.
+export async function fetchFuelPrices(stateName) {
+  // 1. Fetch ALL states once and cache the whole payload for 24 hours
+  const allFuelData = await fetchWithCache('india:fuel:all_states', async () => {
+    async function fetchFuelType(fuelType) {
+      // ── Try the backend proxy first (works in prod + when dev:api is running)
+      try {
+        const proxyRes = await fetch(`/api/fuel?fuel_type=${fuelType}`);
+        if (proxyRes.ok) return await proxyRes.json();
+      } catch { /* proxy not available locally */ }
+
+      // ── Fallback: call IndianAPI directly (local dev only)
+      const apiKey = import.meta.env.VITE_INDIAN_API_KEY;
+      if (!apiKey) return [];
+      try {
+        const directRes = await fetch(
+          `https://fuel.indianapi.in/live_fuel_price?location_type=state&fuel_type=${fuelType}`,
+          { headers: { 'X-Api-Key': apiKey } }
+        );
+        if (directRes.ok) {
+          console.warn(`[Fuel] Using direct API call for ${fuelType} (start dev:api to use proxy)`);
+          return await directRes.json();
+        }
+      } catch (err) {
+        console.warn('[Fuel] Direct API fallback also failed:', err.message);
+      }
+      return [];
+    }
+
+    try {
+      const [petrol, diesel] = await Promise.all([
+        fetchFuelType('petrol'),
+        fetchFuelType('diesel'),
+      ]);
+      return { petrol, diesel };
+    } catch (err) {
+      console.warn('[Fuel Error]', err);
+      return { petrol: [], diesel: [] };
+    }
+  }, 24 * 60 * 60 * 1000); // 24 hours
+
+  // 2. Filter locally — no extra network call when switching states
+  const normalize = (s) => s.toLowerCase().replace(/ and /g, ' & ').replace(/[^a-z]/g, '');
+  const targetState = normalize(stateName);
+
+  const petrolMatch = allFuelData.petrol.find(item => normalize(item.city || item.state || '') === targetState);
+  const dieselMatch = allFuelData.diesel.find(item => normalize(item.city || item.state || '') === targetState);
+
+  return {
+    petrol: petrolMatch ? { price: petrolMatch.price, change: petrolMatch.change } : null,
+    diesel: dieselMatch ? { price: dieselMatch.price, change: dieselMatch.change } : null,
+  };
+}
+
+
+
 // Simplified static data retainers
 export function getRbiPolicyRates() {
   return { repoRate: 6.50, reverseRepoRate: 3.35, crr: 4.50, slr: 18.00, inflationTarget: '4% ± 2%', lastUpdated: 'Apr 2025' };
