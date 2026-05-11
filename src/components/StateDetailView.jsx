@@ -13,7 +13,7 @@ import { STATE_DISTRICTS, DISTRICT_COORDS } from '../data/districts';
 import cmsData from '../data/cms.json';
 import youtubeLiveCache from '../data/youtube-live-cache.json';
 
-const STATE_LAYOUT_STORAGE_KEY = 'india-monitor-state-layout-v6';
+const STATE_LAYOUT_STORAGE_KEY = 'india-monitor-state-layout-v10';
 
 const INITIAL_STATE_LAYOUTS = {
   lg: [
@@ -23,7 +23,8 @@ const INITIAL_STATE_LAYOUTS = {
     { i: 'economy', x: 3, y: 7, w: 1, h: 7 },
     { i: 'aqi', x: 1, y: 5, w: 1, h: 5 },
     { i: 'news', x: 0, y: 16, w: 3, h: 6 },
-    { i: 'cm', x: 0, y: 22, w: 4, h: 10 },
+    { i: 'cm', x: 0, y: 22, w: 3, h: 8 },
+    { i: 'broadcast', x: 3, y: 22, w: 1, h: 8 },
     { i: 'agri', x: 0, y: 10, w: 1, h: 6 },
     { i: 'security', x: 1, y: 10, w: 1, h: 6 },
     { i: 'demographics', x: 0, y: 5, w: 1, h: 5 },
@@ -60,6 +61,7 @@ export default function StateDetailView({ state, onBack }) {
   const panels = useMemo(() => [
     { id: 'districts', component: <StateDistrictsPanel state={state} selectedDistrict={selectedDistrict || state.capital} onDistrictSelect={setSelectedDistrict} /> },
     { id: 'cm', component: <StateCmPanel state={state} /> },
+    { id: 'broadcast', component: <StateBroadcastPanel state={state} /> },
     { id: 'intel', component: <IntelligenceBriefPanel district={selectedDistrict || state.capital} state={state} /> },
     { id: 'weather', component: <StateWeatherPanel district={selectedDistrict || state.capital} coords={DISTRICT_COORDS[selectedDistrict || state.capital] || { lat: state.lat, lng: state.lng }} /> },
     { id: 'economy', component: <StateEconomyPanel state={state} /> },
@@ -192,11 +194,6 @@ function StateCmPanel({ state }) {
   const [cmData, setCmData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const youtubeFeed = useMemo(() => youtubeFeedForState(state.name), [state.name]);
-  const videoId = youtubeFeed?.resolved_video_id?.trim?.() || null;
-  const isLiveNow = youtubeFeed?.liveBroadcastContent === 'live';
-  const streamTitle = (youtubeFeed?.channel || 'Regional broadcaster').toUpperCase();
-
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -272,33 +269,44 @@ function StateCmPanel({ state }) {
             </div>
           );
 
-  const feedColumn = videoId ? (
-    <div className="w-full shrink-0 self-start lg:w-[min(100%,320px)] lg:flex-[0_0_320px]">
-      <LiveStreamPanel
-        title={streamTitle}
-        youtubeId={videoId}
-        badge={isLiveNow ? 'LIVE' : 'FEED'}
-        badgeColor={isLiveNow ? 'live' : 'info'}
-        fillHeight={false}
-        className="!h-auto w-full min-h-0"
-      />
-    </div>
-  ) : null;
-
   return (
     <Panel
       title={`State Leadership: ${state.name}`}
       icon={Vote}
       onRefresh={load}
       span={2}
-      bodyClassName="p-3 overflow-hidden flex flex-col lg:flex-row gap-3 items-start min-h-0"
-      className="!h-auto lg:max-h-none max-h-full"
+      bodyClassName="p-3 overflow-auto min-h-0"
     >
-      <div className={`flex-1 min-w-0 min-h-0 flex flex-col ${videoId ? 'lg:max-w-none lg:overflow-hidden' : ''}`}>
-        {leadershipBlock}
-      </div>
-      {feedColumn}
+      {leadershipBlock}
     </Panel>
+  );
+}
+
+function StateBroadcastPanel({ state }) {
+  const youtubeFeed = useMemo(() => youtubeFeedForState(state.name), [state.name]);
+  const videoId = youtubeFeed?.resolved_video_id?.trim?.() || null;
+  const isLiveNow = youtubeFeed?.liveBroadcastContent === 'live';
+  const streamTitle = (youtubeFeed?.channel || `${state.name} regional feed`).toUpperCase();
+
+  if (!videoId) {
+    return (
+      <Panel title="Regional News Feed" icon={Newspaper} badge="OFFLINE" badgeColor="warning">
+        <div className="flex h-full min-h-24 items-center justify-center text-center">
+          <p className="text-[10px] text-gray-600 font-mono uppercase">
+            No regional broadcast feed configured for {state.name}.
+          </p>
+        </div>
+      </Panel>
+    );
+  }
+
+  return (
+    <LiveStreamPanel
+      title={streamTitle}
+      youtubeId={videoId}
+      badge={isLiveNow ? 'LIVE' : 'FEED'}
+      badgeColor={isLiveNow ? 'live' : 'info'}
+    />
   );
 }
 
