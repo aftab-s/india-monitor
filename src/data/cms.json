@@ -24,7 +24,7 @@
   { "state": "Punjab", "chiefMinister": "Bhagwant Mann", "rulingParty": "AAP" },
   { "state": "Rajasthan", "chiefMinister": "Bhajan Lal Sharma", "rulingParty": "BJP" },
   { "state": "Sikkim", "chiefMinister": "Prem Singh Tamang", "rulingParty": "SKM" },
-  { "state": "Tamil Nadu", "chiefMinister": "Vijay", "rulingParty": "TVK" },
+  { "state": "Tamil Nadu", "chiefMinister": "Vijay", "rulingParty": "TVK", "wikipediaTitle": "Vijay (actor)" },
   { "state": "Telangana", "chiefMinister": "Revanth Reddy", "rulingParty": "INC" },
   { "state": "Tripura", "chiefMinister": "Manik Saha", "rulingParty": "BJP" },
   { "state": "Uttarakhand", "chiefMinister": "Pushkar Singh Dhami", "rulingParty": "BJP" },

@@ -153,6 +153,7 @@ function parseCmsData(data) {
       state: row?.state || '',
       chiefMinister: row?.chiefMinister || '',
       rulingParty: row?.rulingParty || '',
+      wikipediaTitle: typeof row?.wikipediaTitle === 'string' ? row.wikipediaTitle : '',
     }))
     .filter(row => row.state && row.chiefMinister);
 }
@@ -173,12 +174,13 @@ function buildWikipediaSearchUrl(chiefMinister, stateName) {
   return `https://en.wikipedia.org/wiki/Special:Search?search=${encodeURIComponent(`${chiefMinister} ${stateName}`)}`;
 }
 
-async function fetchCmWikipediaSummary(chiefMinister, stateName) {
+async function fetchCmWikipediaSummary(chiefMinister, stateName, wikipediaTitle = '') {
   const queries = [
+    wikipediaTitle,
     `${chiefMinister}, ${stateName}`,
     `${chiefMinister} ${stateName}`,
     chiefMinister,
-  ];
+  ].filter(Boolean);
 
   for (const query of queries) {
     const wiki = await fetchWikipediaSummary(query);
@@ -207,11 +209,11 @@ function StateCmPanel({ state }) {
         return;
       }
 
-      const wiki = await fetchCmWikipediaSummary(row.chiefMinister, state.name);
+      const wiki = await fetchCmWikipediaSummary(row.chiefMinister, state.name, row.wikipediaTitle);
       setCmData({
         ...row,
         thumbnail: wiki?.thumbnail || null,
-        wikiUrl: wiki?.url || buildWikipediaSearchUrl(row.chiefMinister, state.name),
+        wikiUrl: wiki?.url || buildWikipediaSearchUrl(row.wikipediaTitle || row.chiefMinister, state.name),
         extract: wiki?.extract || '',
       });
     } catch {
