@@ -812,16 +812,21 @@ function ElectionsPanel() {
     <Panel title="Elections" icon={Vote}>
       <div className="text-[9px] text-gray-600 uppercase tracking-wider mb-1.5">Upcoming</div>
       {ELECTION_DATA.upcoming.map((e, i) => (
-        <div key={i} className="flex items-center justify-between py-1 border-b border-dark-500">
-          <div className="text-[10px] text-gray-400">{e.state} — {e.type}</div>
-          <span className="text-[9px] text-accent">{e.expected}</span>
+        <div key={i} className="flex items-center justify-between py-1 border-b border-dark-500 gap-2">
+          <div className="min-w-0">
+            <div className="text-[10px] text-gray-400 truncate">{e.state} — {e.type}</div>
+            {e.seats !== undefined && (
+              <div className="text-[8px] text-gray-600 font-mono uppercase tracking-tighter">{e.seats} seats</div>
+            )}
+          </div>
+          <span className="text-[9px] text-accent shrink-0">{e.expected}</span>
         </div>
       ))}
       <div className="text-[9px] text-gray-600 uppercase tracking-wider mt-3 mb-1.5">Recent</div>
       {ELECTION_DATA.recent.map((e, i) => (
-        <div key={i} className="flex items-center justify-between py-1 border-b border-dark-500">
-          <div className="text-[10px] text-gray-400">{e.state} — {e.type}</div>
-          <span className="text-[9px] text-gray-500">{e.winner} · {e.date}</span>
+        <div key={i} className="flex items-center justify-between py-1 border-b border-dark-500 gap-2">
+          <div className="text-[10px] text-gray-400 truncate">{e.state} — {e.type}</div>
+          <span className="text-[9px] text-gray-500 shrink-0">{e.winner} · {e.date}</span>
         </div>
       ))}
     </Panel>
