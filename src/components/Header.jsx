@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, ArrowLeft, Clock, Radio, Shield, RotateCcw } from 'lucide-react';
+import { Activity, Clock, Radio, Shield, RotateCcw } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 
 export default function Header({ 
@@ -52,16 +52,6 @@ export default function Header({
     <header className="h-11 flex items-center justify-between px-4 bg-black border-b border-dark-500 flex-shrink-0 z-50">
       {/* Left */}
       <div className="flex items-center gap-3">
-        {selectedState && (
-          <button 
-            onClick={onBack}
-            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-accent transition-colors cursor-pointer"
-          >
-            <ArrowLeft size={14} />
-            <span className="hidden sm:inline uppercase tracking-widest font-mono text-[10px]">Back</span>
-          </button>
-        )}
-        
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-sm bg-accent animate-pulse" />
           <h1 className="text-sm font-bold tracking-[3px] text-white flex items-baseline gap-1">
@@ -92,14 +82,15 @@ export default function Header({
       </div>
 
       {/* Right */}
-      <div className="flex items-center gap-3">
-        <div className={`flex items-center gap-1.5 px-2.5 py-0.5 text-[10px] font-mono tracking-widest uppercase border ${
+      <div className="flex items-center gap-2 sm:gap-3 ml-2 shrink-0">
+        <div className={`flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 text-[10px] font-mono tracking-wider sm:tracking-widest uppercase border whitespace-nowrap ${
           isMarketOpen 
             ? 'bg-transparent text-up border-up' 
             : 'bg-transparent text-down border-down'
         }`}>
           <Radio size={8} className={isMarketOpen ? 'text-up' : 'text-down'} />
-          {isMarketOpen ? 'MARKET OPEN' : 'MARKET CLOSED'}
+          <span className="sm:hidden">{isMarketOpen ? 'OPEN' : 'CLOSED'}</span>
+          <span className="hidden sm:inline">{isMarketOpen ? 'MARKET OPEN' : 'MARKET CLOSED'}</span>
         </div>
 
         <button 
