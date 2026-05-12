@@ -56,12 +56,18 @@ export const INFRA_TARGETS = {
 
 export const ELECTION_DATA = {
   upcoming: [
-    { state: 'Bihar', type: 'Assembly', expected: 'Nov 2025', status: 'Scheduled' },
-    { state: 'Delhi', type: 'MCD Bypolls', expected: 'Q3 2025', status: 'Pending' },
+    { state: 'Goa', type: 'Assembly', expected: 'Feb-Mar 2027', seats: 40, termEnd: 'Mar 2027' },
+    { state: 'Manipur', type: 'Assembly', expected: 'Feb-Mar 2027', seats: 60, termEnd: 'Mar 2027' },
+    { state: 'Punjab', type: 'Assembly', expected: 'Feb-Mar 2027', seats: 117, termEnd: 'Mar 2027' },
+    { state: 'Uttarakhand', type: 'Assembly', expected: 'Feb-Mar 2027', seats: 70, termEnd: 'Mar 2027' },
+    { state: 'Uttar Pradesh', type: 'Assembly', expected: 'Apr-May 2027', seats: 403, termEnd: 'May 2027' },
   ],
   recent: [
-    { state: 'Delhi', type: 'Assembly', date: 'Feb 2025', winner: 'AAP' },
-    { state: 'Maharashtra', type: 'Assembly', date: 'Nov 2024', winner: 'Mahayuti' },
+    { state: 'Kerala', type: 'Assembly', date: 'May 2026', winner: 'INC' },
+    { state: 'West Bengal', type: 'Assembly', date: 'May 2026', winner: 'NDA' },
+    { state: 'Tamil Nadu', type: 'Assembly', date: 'May 2026', winner: 'TVK' },
+    { state: 'Assam', type: 'Assembly', date: 'May 2026', winner: 'NDA' },
+    { state: 'Puducherry', type: 'Assembly', date: 'May 2026', winner: 'NDA' },
   ],
 };
 
