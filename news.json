@@ -375,5 +375,31 @@
     "embed_url": null,
     "stream_type": "rotator",
     "note": "Rotates streams every few months. Use API."
+  },
+  {
+    "state": "National",
+    "region": "National",
+    "channel": "India Today",
+    "language": "English",
+    "handle": "@IndiaToday",
+    "channel_id": "UCYPvAwZP8pZhSMW8qs7cVCw",
+    "live_page": "https://www.youtube.com/@IndiaToday/live",
+    "known_video_id": null,
+    "embed_url": null,
+    "stream_type": "rotator",
+    "note": "National channel"
+  },
+  {
+    "state": "National",
+    "region": "National",
+    "channel": "CNN News18",
+    "language": "English",
+    "handle": "@cnnnews18",
+    "channel_id": "UC0522hH2nZ6FvUvY248s24Q",
+    "live_page": "https://www.youtube.com/@cnnnews18/live",
+    "known_video_id": null,
+    "embed_url": null,
+    "stream_type": "rotator",
+    "note": "National channel"
   }
 ]

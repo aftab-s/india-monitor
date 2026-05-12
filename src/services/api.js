@@ -468,198 +468,44 @@ export async function fetchFuelPrices(stateName) {
 // Uses ssrinnovationlab.com API (free, no key). Proxy handles CORS
 // and CDN caching. Falls back to direct call in local dev.
 export async function fetchPetrolPumps(city, limit = 10, coords = null) {
-  return fetchWithCache(`india:pumps:${city}:${limit}`, async () => {
-    let query;
-    if (coords && coords.lat && coords.lng) {
-      query = `
-        [out:json][timeout:15];
-        (
-          node["amenity"="fuel"](around:20000,${coords.lat},${coords.lng});
-          way["amenity"="fuel"](around:20000,${coords.lat},${coords.lng});
-        );
-        out body;
-        >;
-        out skel qt;
-      `;
-    } else {
-      query = `
-        [out:json][timeout:25];
-        area["name"="${city}"]->.searchArea;
-        (
-          node["amenity"="fuel"](area.searchArea);
-          way["amenity"="fuel"](area.searchArea);
-        );
-        out body;
-        >;
-        out skel qt;
-      `;
-    }
-
-    async function tryFetch() {
-      // ── Try backend proxy first
-      try {
-        let proxyUrl = `/api/pumps?city=${encodeURIComponent(city)}`;
-        if (coords && coords.lat && coords.lng) {
-          proxyUrl += `&lat=${coords.lat}&lng=${coords.lng}`;
-        }
-        const proxyRes = await fetch(proxyUrl);
-        if (proxyRes.ok) return await proxyRes.json();
-      } catch { /* proxy not available */ }
-
-      // ── Fallback: direct call (local dev)
-      try {
-        const endpoint = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
-        const directRes = await fetch(endpoint);
-        if (directRes.ok) {
-          console.warn(`[Pumps] Using direct API call (start dev:api to use proxy)`);
-          const data = await directRes.json();
-          const results = data.elements
-            .filter(el => el.tags && el.tags.amenity === 'fuel')
-            .map(el => {
-              const stationLat = el.lat || (el.center && el.center.lat);
-              const stationLng = el.lon || (el.center && el.center.lon);
-              
-              let company = 'Unknown';
-              const brand = el.tags.brand || el.tags.operator || '';
-              const brandLower = brand.toLowerCase();
-              
-              if (brandLower.includes('iocl') || brandLower.includes('indian oil')) company = 'IOCL';
-              else if (brandLower.includes('hpcl') || brandLower.includes('hindustan petroleum')) company = 'HPCL';
-              else if (brandLower.includes('bpcl') || brandLower.includes('bharat petroleum')) company = 'BPCL';
-              else if (brandLower.includes('shell')) company = 'Shell';
-              else if (brandLower.includes('jio') || brandLower.includes('reliance')) company = 'Jio-bp';
-              else if (brandLower.includes('nayara')) company = 'Nayara';
-              
-              // Build address
-              let addressParts = [];
-              if (el.tags['addr:street']) addressParts.push(el.tags['addr:street']);
-              if (el.tags['addr:suburb']) addressParts.push(el.tags['addr:suburb']);
-              if (el.tags['addr:neighbourhood']) addressParts.push(el.tags['addr:neighbourhood']);
-              if (el.tags['addr:city']) addressParts.push(el.tags['addr:city']);
-              
-              const address = el.tags['addr:full'] || (addressParts.length > 0 ? addressParts.join(', ') : `${city} Region`);
-
-              return {
-                id: el.id,
-                name: el.tags.name || 'Petrol Pump',
-                pump_name: el.tags.name || 'Petrol Pump',
-                company: company,
-                address: address,
-                station_timing: el.tags.opening_hours || 'N/A',
-                lat: stationLat,
-                lng: stationLng,
-                direction_link: stationLat && stationLng ? `https://www.google.com/maps/dir/?api=1&destination=${stationLat},${stationLng}` : null
-              };
-            });
-          return { count: results.length, results: results.slice(0, limit) };
-        }
-      } catch (err) {
-        console.warn('[Pumps] Direct fallback failed:', err.message);
-      }
-      return { count: 0, results: [] };
-    }
-
+  const cache = await fetchWithCache('india:pumps:cache', async () => {
     try {
-      return await tryFetch();
+      const data = await fetchJSON('/api/pumps-cache', { timeout: 15000 });
+      return data && typeof data === 'object' ? data : null;
     } catch (err) {
-      console.warn('[Pumps Error]', err);
-      return { count: 0, results: [] };
+      console.warn('[Pumps Cache] fetch failed:', err.message);
+      return null;
     }
-  }, 12 * 60 * 60 * 1000); // 12 hours cache
+  }, 24 * 60 * 60 * 1000);
+
+  const pumpsData = cache?.data?.[city];
+  if (pumpsData && pumpsData.results) {
+    return { count: pumpsData.count, results: pumpsData.results.slice(0, limit) };
+  }
+  
+  return { count: 0, results: [] };
 }
 
 // ─── EV Charging Stations (via backend proxy → /api/ev) ───────
 // Uses OpenStreetMap Overpass API (free, no key). Proxy handles CORS
 // and CDN caching. Falls back to direct call in local dev.
 export async function fetchEVStations(city, coords = null) {
-  return fetchWithCache(`india:ev:${city}`, async () => {
-    let query;
-    if (coords && coords.lat && coords.lng) {
-      query = `
-        [out:json][timeout:15];
-        (
-          node["amenity"="charging_station"](around:20000,${coords.lat},${coords.lng});
-          way["amenity"="charging_station"](around:20000,${coords.lat},${coords.lng});
-        );
-        out body;
-        >;
-        out skel qt;
-      `;
-    } else {
-      query = `
-        [out:json][timeout:25];
-        area["name"="${city}"]->.searchArea;
-        (
-          node["amenity"="charging_station"](area.searchArea);
-          way["amenity"="charging_station"](area.searchArea);
-        );
-        out body;
-        >;
-        out skel qt;
-      `;
-    }
-
-    async function tryFetch() {
-      // ── Try backend proxy first
-      try {
-        let proxyUrl = `/api/ev?city=${encodeURIComponent(city)}`;
-        if (coords && coords.lat && coords.lng) {
-          proxyUrl += `&lat=${coords.lat}&lng=${coords.lng}`;
-        }
-        const proxyRes = await fetch(proxyUrl);
-        if (proxyRes.ok) return await proxyRes.json();
-      } catch { /* proxy not available */ }
-
-      // ── Fallback: direct call (local dev)
-      try {
-        const endpoint = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`;
-        const directRes = await fetch(endpoint);
-        if (directRes.ok) {
-          console.warn(`[EV] Using direct API call (start dev:api to use proxy)`);
-          const data = await directRes.json();
-          const results = data.elements
-            .filter(el => el.tags && el.tags.amenity === 'charging_station')
-            .map(el => {
-              const stationLat = el.lat || (el.center && el.center.lat);
-              const stationLng = el.lon || (el.center && el.center.lon);
-              
-              // Build address
-              let addressParts = [];
-              if (el.tags['addr:street']) addressParts.push(el.tags['addr:street']);
-              if (el.tags['addr:suburb']) addressParts.push(el.tags['addr:suburb']);
-              if (el.tags['addr:neighbourhood']) addressParts.push(el.tags['addr:neighbourhood']);
-              if (el.tags['addr:city']) addressParts.push(el.tags['addr:city']);
-              
-              const address = el.tags['addr:full'] || (addressParts.length > 0 ? addressParts.join(', ') : `${city} Region`);
-
-              return {
-                id: el.id,
-                name: el.tags.name || 'EV Charging Station',
-                operator: el.tags.operator || 'Unknown Operator',
-                network: el.tags.network || el.tags.brand || 'Unknown Network',
-                capacity: el.tags.capacity || 'N/A',
-                socket: el.tags['socket:type2'] ? 'Type 2' : (el.tags.socket ? el.tags.socket : 'Standard'),
-                lat: stationLat,
-                lng: stationLng,
-                address: address,
-                direction_link: stationLat && stationLng ? `https://www.google.com/maps/dir/?api=1&destination=${stationLat},${stationLng}` : null
-              };
-            });
-          return { count: results.length, results };
-        }
-      } catch (err) {
-        console.warn('[EV] Direct fallback failed:', err.message);
-      }
-      return { count: 0, results: [] };
-    }
-
+  const cache = await fetchWithCache('india:ev:cache', async () => {
     try {
-      return await tryFetch();
+      const data = await fetchJSON('/api/ev-cache', { timeout: 15000 });
+      return data && typeof data === 'object' ? data : null;
     } catch (err) {
-      console.warn('[EV Error]', err);
-      return { count: 0, results: [] };
+      console.warn('[EV Cache] fetch failed:', err.message);
+      return null;
     }
-  }, 12 * 60 * 60 * 1000); // 12 hours cache
+  }, 24 * 60 * 60 * 1000);
+
+  const evData = cache?.data?.[city];
+  if (evData && evData.results) {
+    return { count: evData.count, results: evData.results };
+  }
+  
+  return { count: 0, results: [] };
 }
 
 
