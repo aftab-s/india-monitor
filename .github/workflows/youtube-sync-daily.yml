@@ -23,16 +23,5 @@ jobs:
       - name: Sync YouTube live cache
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
         run: npm ci && npm run youtube:sync
-
-      - name: Commit cache if changed
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/data/youtube-live-cache.json
-          if git diff --staged --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "chore: refresh youtube-live-cache.json"
-            git push
-          fi

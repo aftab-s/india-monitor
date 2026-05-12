@@ -11,7 +11,6 @@ import { fetchStateWeather, fetchNews, fetchDistrictNews, fetchStateNews, fetchA
 import { REGION_COLORS, STATES } from '../data/constants';
 import { STATE_DISTRICTS, DISTRICT_COORDS } from '../data/districts';
 import cmsData from '../data/cms.json';
-import youtubeLiveCache from '../data/youtube-live-cache.json';
 
 const STATE_LAYOUT_STORAGE_KEY = 'india-monitor-state-layout-v15';
 
@@ -169,8 +168,8 @@ function normalizeStateName(name = '') {
 }
 
 /** Match app state.name to youtube-live-cache.json entry (`state` may use `&` vs `and`). */
-function youtubeFeedForState(stateName) {
-  const entries = youtubeLiveCache?.entries;
+function youtubeFeedForState(stateName, cache) {
+  const entries = cache?.entries;
   if (!Array.isArray(entries)) return null;
   const key = normalizeStateName(stateName);
   return entries.find((e) => normalizeStateName(e?.state ?? '') === key) || null;
@@ -291,10 +290,36 @@ function StateCmPanel({ state }) {
 }
 
 function StateBroadcastPanel({ state }) {
-  const youtubeFeed = useMemo(() => youtubeFeedForState(state.name), [state.name]);
+  const [youtubeLiveCache, setYoutubeLiveCache] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/youtube-cache')
+      .then(res => res.json())
+      .then(data => {
+        setYoutubeLiveCache(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.warn('[YouTube Cache] Failed to fetch:', err.message);
+        setLoading(false);
+      });
+  }, []);
+
+  const youtubeFeed = useMemo(() => youtubeFeedForState(state.name, youtubeLiveCache), [state.name, youtubeLiveCache]);
   const videoId = youtubeFeed?.resolved_video_id?.trim?.() || null;
   const isLiveNow = youtubeFeed?.liveBroadcastContent === 'live';
   const streamTitle = (youtubeFeed?.channel || `${state.name} regional feed`).toUpperCase();
+
+  if (loading) {
+    return (
+      <Panel title="Regional News Feed" icon={Newspaper} badge="LOADING" badgeColor="info">
+        <div className="flex h-full min-h-24 items-center justify-center text-center">
+          <p className="text-[10px] text-gray-600 font-mono uppercase">Loading feed data...</p>
+        </div>
+      </Panel>
+    );
+  }
 
   if (!videoId) {
     return (
