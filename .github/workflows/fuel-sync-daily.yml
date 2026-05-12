@@ -21,16 +21,5 @@ jobs:
       - name: Sync fuel prices (petrol + diesel)
         env:
           INDIAN_API_KEY: ${{ secrets.INDIAN_API_KEY }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
         run: npm ci && npm run fuel:sync
-
-      - name: Commit cache if changed
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/data/fuel-prices.json
-          if git diff --staged --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "chore: refresh fuel-prices.json"
-            git push
-          fi

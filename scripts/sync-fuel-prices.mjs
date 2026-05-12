@@ -1,10 +1,11 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { put } from "@vercel/blob";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
-const OUT_PATH = join(ROOT, "src", "data", "fuel-prices.json");
+const BLOB_KEY = "fuel-prices.json";
 
 const BASE = "https://fuel.indianapi.in/live_fuel_price";
 const FUEL_TYPES = ["petrol", "diesel"];
@@ -63,6 +64,12 @@ async function main() {
     );
     process.exit(1);
   }
+  if (!process.env.BLOB_READ_WRITE_TOKEN?.trim()) {
+    console.error(
+      "Set BLOB_READ_WRITE_TOKEN (Vercel Blob read/write token).",
+    );
+    process.exit(1);
+  }
 
   const [petrol, diesel] = await Promise.all(
     FUEL_TYPES.map((t) => fetchFuel(t)),
@@ -77,9 +84,13 @@ async function main() {
     diesel,
   };
 
-  await writeFile(OUT_PATH, JSON.stringify(out, null, 2) + "\n", "utf8");
+  const { url } = await put(BLOB_KEY, JSON.stringify(out, null, 2), {
+    access: "private",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+  });
   console.log(
-    `Wrote ${OUT_PATH} (petrol=${petrol.length}, diesel=${diesel.length}).`,
+    `Uploaded to Vercel Blob: ${url} (petrol=${petrol.length}, diesel=${diesel.length}).`,
   );
 }
 

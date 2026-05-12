@@ -434,16 +434,24 @@ export {
   SAFE_REGIONS
 };
 
-import fuelPricesData from '../data/fuel-prices.json';
-
 function normalizeFuelKey(s = '') {
   return String(s).toLowerCase().replace(/ and /g, ' & ').replace(/[^a-z]/g, '');
 }
 
 export async function fetchFuelPrices(stateName) {
+  const cache = await fetchWithCache('india:fuel:cache', async () => {
+    try {
+      const data = await fetchJSON('/api/fuel-cache', { timeout: 15000 });
+      return data && typeof data === 'object' ? data : null;
+    } catch (err) {
+      console.warn('[Fuel Cache] fetch failed:', err.message);
+      return null;
+    }
+  }, 60 * 60 * 1000); // 1h client-side cache; CDN already caches edge-side
+
   const target = normalizeFuelKey(stateName);
-  const petrolList = Array.isArray(fuelPricesData?.petrol) ? fuelPricesData.petrol : [];
-  const dieselList = Array.isArray(fuelPricesData?.diesel) ? fuelPricesData.diesel : [];
+  const petrolList = Array.isArray(cache?.petrol) ? cache.petrol : [];
+  const dieselList = Array.isArray(cache?.diesel) ? cache.diesel : [];
 
   const petrolMatch = petrolList.find((item) => normalizeFuelKey(item.city || item.state || '') === target);
   const dieselMatch = dieselList.find((item) => normalizeFuelKey(item.city || item.state || '') === target);
@@ -451,7 +459,7 @@ export async function fetchFuelPrices(stateName) {
   return {
     petrol: petrolMatch ? { price: petrolMatch.price, change: petrolMatch.change } : null,
     diesel: dieselMatch ? { price: dieselMatch.price, change: dieselMatch.change } : null,
-    fetchedAt: fuelPricesData?.fetchedAt || null,
+    fetchedAt: cache?.fetchedAt || null,
   };
 }
 
