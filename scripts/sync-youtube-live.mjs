@@ -205,7 +205,8 @@ async function main() {
 
   const { url } = await put("youtube-live-cache.json", JSON.stringify(out, null, 2), {
     access: "private",
-    addRandomSuffix: false
+    addRandomSuffix: false,
+    allowOverwrite: true
   });
   console.log(
     `Uploaded to Vercel Blob: ${url} (${entries.length} entries, ${uniqueChannelIds.length} unique channel searches + video batches).`
