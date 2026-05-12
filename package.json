@@ -10,12 +10,14 @@
     "dev": "vite",
     "dev:api": "node scripts/dev-server.js",
     "youtube:sync": "node scripts/sync-youtube-live.mjs",
+    "fuel:sync": "node scripts/sync-fuel-prices.mjs",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
+    "@vercel/blob": "^2.3.3",
     "lucide-react": "^1.11.0",
     "maplibre-gl": "^5.24.0",
     "react": "^19.2.5",

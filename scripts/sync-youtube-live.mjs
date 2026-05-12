@@ -1,6 +1,7 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { put } from "@vercel/blob";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -202,9 +203,13 @@ async function main() {
     entries,
   };
 
-  await writeFile(OUT_PATH, JSON.stringify(out, null, 2), "utf8");
+  const { url } = await put("youtube-live-cache.json", JSON.stringify(out, null, 2), {
+    access: "private",
+    addRandomSuffix: false,
+    allowOverwrite: true
+  });
   console.log(
-    `Wrote ${OUT_PATH} (${entries.length} entries, ${uniqueChannelIds.length} unique channel searches + video batches).`,
+    `Uploaded to Vercel Blob: ${url} (${entries.length} entries, ${uniqueChannelIds.length} unique channel searches + video batches).`
   );
 }
 

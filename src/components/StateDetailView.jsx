@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { ArrowLeft, MapPin, Thermometer, Wind, Droplets, Shield, Newspaper, Wheat, Activity, Building, Navigation, Vote } from 'lucide-react';
+import { ArrowLeft, MapPin, Thermometer, Wind, Droplets, Shield, Newspaper, Wheat, Activity, Building, Navigation, Vote, Fuel, MapPinned, Clock, ExternalLink, Zap } from 'lucide-react';
 import { Responsive, useContainerWidth } from 'react-grid-layout';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 
@@ -7,13 +7,12 @@ import useAutoRefresh from '../hooks/useAutoRefresh';
 import Panel, { StatValue, NewsItem } from './Panel';
 import LiveStreamPanel from './LiveStreamPanel';
 import Footer from './Footer';
-import { fetchStateWeather, fetchNews, fetchDistrictNews, fetchStateNews, fetchAirQuality, fetchWikipediaSummary, fetchStateInfraNews, STATE_ECONOMY, STATE_DEMOGRAPHICS, STATE_AGRICULTURE, SAFE_REGIONS } from '../services/api';
+import { fetchStateWeather, fetchNews, fetchDistrictNews, fetchStateNews, fetchAirQuality, fetchWikipediaSummary, fetchStateInfraNews, fetchFuelPrices, fetchPetrolPumps, fetchEVStations, STATE_ECONOMY, STATE_DEMOGRAPHICS, STATE_AGRICULTURE, SAFE_REGIONS } from '../services/api';
 import { REGION_COLORS, STATES } from '../data/constants';
 import { STATE_DISTRICTS, DISTRICT_COORDS } from '../data/districts';
 import cmsData from '../data/cms.json';
-import youtubeLiveCache from '../data/youtube-live-cache.json';
 
-const STATE_LAYOUT_STORAGE_KEY = 'india-monitor-state-layout-v10';
+const STATE_LAYOUT_STORAGE_KEY = 'india-monitor-state-layout-v15';
 
 const INITIAL_STATE_LAYOUTS = {
   lg: [
@@ -23,12 +22,15 @@ const INITIAL_STATE_LAYOUTS = {
     { i: 'economy', x: 3, y: 7, w: 1, h: 7 },
     { i: 'aqi', x: 1, y: 5, w: 1, h: 5 },
     { i: 'news', x: 0, y: 16, w: 3, h: 6 },
-    { i: 'cm', x: 0, y: 22, w: 3, h: 8 },
+    { i: 'cm', x: 0, y: 22, w: 2, h: 8 },
+    { i: 'fuel', x: 2, y: 22, w: 1, h: 8 },
     { i: 'broadcast', x: 3, y: 22, w: 1, h: 8 },
     { i: 'agri', x: 0, y: 10, w: 1, h: 6 },
     { i: 'security', x: 1, y: 10, w: 1, h: 6 },
     { i: 'demographics', x: 0, y: 5, w: 1, h: 5 },
     { i: 'infra', x: 3, y: 14, w: 1, h: 8 },
+    { i: 'pumps', x: 0, y: 30, w: 2, h: 10 },
+    { i: 'ev', x: 2, y: 30, w: 2, h: 10 },
   ]
 };
 
@@ -71,6 +73,9 @@ export default function StateDetailView({ state, onBack }) {
     { id: 'security', component: <StateSecurityPanel state={state} /> },
     { id: 'demographics', component: <StateDemographicsPanel state={state} /> },
     { id: 'infra', component: <StateInfraPanel state={state} /> },
+    { id: 'fuel', component: <StateFuelPanel state={state} /> },
+    { id: 'pumps', component: <StatePetrolPumpsPanel state={state} district={selectedDistrict || state.capital} coords={DISTRICT_COORDS[selectedDistrict || state.capital] || { lat: state.lat, lng: state.lng }} /> },
+    { id: 'ev', component: <StateEVPanel state={state} district={selectedDistrict || state.capital} coords={DISTRICT_COORDS[selectedDistrict || state.capital] || { lat: state.lat, lng: state.lng }} /> },
   ], [state, selectedDistrict]);
 
 
@@ -163,8 +168,8 @@ function normalizeStateName(name = '') {
 }
 
 /** Match app state.name to youtube-live-cache.json entry (`state` may use `&` vs `and`). */
-function youtubeFeedForState(stateName) {
-  const entries = youtubeLiveCache?.entries;
+function youtubeFeedForState(stateName, cache) {
+  const entries = cache?.entries;
   if (!Array.isArray(entries)) return null;
   const key = normalizeStateName(stateName);
   return entries.find((e) => normalizeStateName(e?.state ?? '') === key) || null;
@@ -285,10 +290,36 @@ function StateCmPanel({ state }) {
 }
 
 function StateBroadcastPanel({ state }) {
-  const youtubeFeed = useMemo(() => youtubeFeedForState(state.name), [state.name]);
+  const [youtubeLiveCache, setYoutubeLiveCache] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/youtube-cache')
+      .then(res => res.json())
+      .then(data => {
+        setYoutubeLiveCache(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.warn('[YouTube Cache] Failed to fetch:', err.message);
+        setLoading(false);
+      });
+  }, []);
+
+  const youtubeFeed = useMemo(() => youtubeFeedForState(state.name, youtubeLiveCache), [state.name, youtubeLiveCache]);
   const videoId = youtubeFeed?.resolved_video_id?.trim?.() || null;
   const isLiveNow = youtubeFeed?.liveBroadcastContent === 'live';
   const streamTitle = (youtubeFeed?.channel || `${state.name} regional feed`).toUpperCase();
+
+  if (loading) {
+    return (
+      <Panel title="Regional News Feed" icon={Newspaper} badge="LOADING" badgeColor="info">
+        <div className="flex h-full min-h-24 items-center justify-center text-center">
+          <p className="text-[10px] text-gray-600 font-mono uppercase">Loading feed data...</p>
+        </div>
+      </Panel>
+    );
+  }
 
   if (!videoId) {
     return (
@@ -701,3 +732,260 @@ function StateInfraPanel({ state }) {
     </Panel>
   );
 }
+
+// ─── State Fuel Panel ─────────────────────────────────────────
+function StateFuelPanel({ state }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try { setData(await fetchFuelPrices(state.name)); }
+    catch { setData(null); }
+    setLoading(false);
+  }, [state.name]);
+
+  useEffect(() => { load(); }, [load]);
+  useAutoRefresh(load, 24 * 60 * 60000); // 24 hours — matches server CDN cache
+
+  return (
+    <Panel title="Fuel Rates" icon={Fuel} badge="LIVE" badgeColor="live" loading={loading} onRefresh={load}>
+      {data ? (
+        <>
+          <div className="flex flex-col gap-4 mt-2">
+            <div>
+              <div className="text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1">Petrol</div>
+              {data.petrol ? (
+                <div className="flex items-end gap-2">
+                  <span className="text-2xl font-bold font-mono text-white">₹{data.petrol.price}</span>
+                  {data.petrol.change && data.petrol.change !== '0.00' && (
+                    <span className={`text-[10px] font-mono mb-1 ${parseFloat(data.petrol.change) > 0 ? 'text-down' : 'text-up'}`}>
+                      {parseFloat(data.petrol.change) > 0 ? '▲' : '▼'} {Math.abs(data.petrol.change)}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-[10px] text-gray-600 font-mono">N/A</span>
+              )}
+            </div>
+            <div>
+              <div className="text-[10px] text-gray-500 font-mono uppercase tracking-widest mb-1">Diesel</div>
+              {data.diesel ? (
+                <div className="flex items-end gap-2">
+                  <span className="text-2xl font-bold font-mono text-white">₹{data.diesel.price}</span>
+                  {data.diesel.change && data.diesel.change !== '0.00' && (
+                    <span className={`text-[10px] font-mono mb-1 ${parseFloat(data.diesel.change) > 0 ? 'text-down' : 'text-up'}`}>
+                      {parseFloat(data.diesel.change) > 0 ? '▲' : '▼'} {Math.abs(data.diesel.change)}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-[10px] text-gray-600 font-mono">N/A</span>
+              )}
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="py-4 text-center">
+          <p className="text-[10px] text-gray-600 italic">Fuel data unavailable</p>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+// ─── State Petrol Pumps Panel ─────────────────────────────────
+const COMPANY_COLORS = {
+  IOCL: '#1a237e', HPCL: '#006400', BPCL: '#d32f2f',
+  Shell: '#ffdd00', 'Jio-bp': '#0066b3', Nayara: '#e91e63',
+  Reliance: '#1565c0',
+};
+
+function StatePetrolPumpsPanel({ state, district, coords }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await fetchPetrolPumps(district, 10, coords);
+      setData(result);
+    } catch {
+      setData({ count: 0, results: [] });
+    }
+    setLoading(false);
+  }, [district]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const pumps = data?.results || [];
+
+  return (
+    <Panel
+      title={`Fuel Stations: ${district}`}
+      icon={MapPinned}
+      badge={pumps.length > 0 ? `${data?.count || pumps.length} Found` : null}
+      badgeColor="info"
+      loading={loading}
+      onRefresh={load}
+      bodyClassName="p-0 overflow-auto min-h-0"
+    >
+      {pumps.length === 0 ? (
+        <div className="py-6 text-center">
+          <p className="text-[10px] text-gray-600 font-mono uppercase">No fuel stations found near {district}</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-dark-500">
+          {pumps.map((pump) => (
+            <div key={pump.id} className="px-3 py-2.5 hover:bg-dark-600/30 transition-colors group">
+              {/* Row 1: Name + Company badge */}
+              <div className="flex items-start justify-between gap-2 mb-1.5">
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-[10px] font-mono text-gray-300 uppercase tracking-wider leading-snug line-clamp-1 group-hover:text-white transition-colors">
+                    {pump.pump_name || pump.name}
+                  </h4>
+                </div>
+                <span
+                  className="text-[8px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5 border border-dark-500 rounded-none flex-shrink-0"
+                  style={{
+                    color: COMPANY_COLORS[pump.company] || '#888',
+                    borderColor: COMPANY_COLORS[pump.company] || '#444',
+                  }}
+                >
+                  {pump.company}
+                </span>
+              </div>
+
+              {/* Row 2: Address + Timing + Directions */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  {pump.address && pump.address !== 'Address not available' && (
+                    <span className="text-[9px] text-gray-600 font-mono uppercase truncate max-w-[200px]">
+                      {pump.address}
+                    </span>
+                  )}
+                  {pump.station_timing && (
+                    <span className={`text-[8px] font-mono uppercase tracking-wider flex items-center gap-0.5 flex-shrink-0 ${
+                      pump.station_timing === '24 Hours' ? 'text-up' : 'text-gray-500'
+                    }`}>
+                      <Clock size={8} />
+                      {pump.station_timing}
+                    </span>
+                  )}
+                </div>
+                {pump.direction_link && (
+                  <a
+                    href={pump.direction_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-0.5 text-[8px] text-accent hover:text-white font-mono uppercase tracking-tighter flex-shrink-0 transition-colors"
+                  >
+                    <ExternalLink size={8} />
+                    Directions
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+// ─── State EV Panel ───────────────────────────────────────────
+function StateEVPanel({ state, district, coords }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await fetchEVStations(district, coords);
+      setData(result);
+    } catch {
+      setData({ count: 0, results: [] });
+    }
+    setLoading(false);
+  }, [district]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const stations = data?.results || [];
+
+  return (
+    <Panel
+      title={`EV Stations: ${district}`}
+      icon={Zap}
+      badge={stations.length > 0 ? `${data?.count || stations.length} Found` : null}
+      badgeColor="live"
+      loading={loading}
+      onRefresh={load}
+      bodyClassName="p-0 overflow-auto min-h-0"
+    >
+      {stations.length === 0 ? (
+        <div className="py-6 text-center">
+          <p className="text-[10px] text-gray-600 font-mono uppercase">No EV charging stations found in {district}</p>
+          <p className="text-[8px] text-gray-700 mt-1 uppercase">Powered by OpenStreetMap</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-dark-500">
+          {stations.map((station) => (
+            <div key={station.id} className="px-3 py-2.5 hover:bg-dark-600/30 transition-colors group">
+              {/* Row 1: Name + Network badge */}
+              <div className="flex items-start justify-between gap-2 mb-1.5">
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-[10px] font-mono text-gray-300 uppercase tracking-wider leading-snug line-clamp-1 group-hover:text-white transition-colors">
+                    {station.name}
+                  </h4>
+                </div>
+                <span className="text-[8px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5 border border-dark-500 rounded-none flex-shrink-0 text-accent border-accent/30">
+                  {station.network !== 'Unknown Network' ? station.network : station.operator}
+                </span>
+              </div>
+
+              {/* Row 2: Details */}
+              <div className="flex items-center gap-3 mb-1.5">
+                <div className="flex items-center gap-1">
+                  <span className="text-[8px] text-gray-600 font-mono uppercase">Operator</span>
+                  <span className="text-[10px] font-mono font-bold text-gray-400">{station.operator}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-[8px] text-gray-600 font-mono uppercase">Socket</span>
+                  <span className="text-[10px] font-mono font-bold text-green-400">{station.socket}</span>
+                </div>
+                {station.capacity !== 'N/A' && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-[8px] text-gray-600 font-mono uppercase">Capacity</span>
+                    <span className="text-[10px] font-mono font-bold text-blue-400">{station.capacity}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Row 3: Address + Directions */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-[9px] text-gray-600 font-mono uppercase truncate max-w-[250px]">
+                    {station.address}
+                  </span>
+                </div>
+                {station.direction_link && (
+                  <a
+                    href={station.direction_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-0.5 text-[8px] text-accent hover:text-white font-mono uppercase tracking-tighter flex-shrink-0 transition-colors"
+                  >
+                    <ExternalLink size={8} />
+                    Directions
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Panel>
+  );
+}
+
