@@ -11,6 +11,8 @@
     "dev:api": "node scripts/dev-server.js",
     "youtube:sync": "node scripts/sync-youtube-live.mjs",
     "fuel:sync": "node scripts/sync-fuel-prices.mjs",
+    "pumps:sync": "node scripts/sync-pumps.mjs",
+    "ev:sync": "node scripts/sync-ev-stations.mjs",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

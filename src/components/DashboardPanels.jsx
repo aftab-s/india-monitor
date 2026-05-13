@@ -106,9 +106,9 @@ export default function DashboardPanels({
 
     { id: 'aqi', component: <AirQualityPanel /> },
     { id: 'news', component: <NewsPanel /> },
-    { id: 'stream1', component: <LiveStreamPanel title="NDTV India" youtubeId="https://www.youtube.com/live/p8yZdGjqfxg?si=3DwigqylYb1q5yVp" /> },
-    { id: 'stream2', component: <LiveStreamPanel title="India Today" youtubeId="https://www.youtube.com/watch?v=tr9CoMGkqf4" /> },
-    { id: 'stream3', component: <LiveStreamPanel title="CNN News18" youtubeId="https://www.youtube.com/watch?v=rfDx1HMvXbQ" /> },
+    { id: 'stream1', component: <NationalBroadcastPanel title="NDTV India" channelId="UC9CYT9gSNLevX5ey2_6CK0Q" fallbackId="cccev7fYB3M" /> },
+    { id: 'stream2', component: <NationalBroadcastPanel title="India Today" channelId="UCYPvAwZP8pZhSMW8qs7cVCw" fallbackId="tr9CoMGkqf4" /> },
+    { id: 'stream3', component: <NationalBroadcastPanel title="CNN News18" channelId="UC0522hH2nZ6FvUvY248s24Q" fallbackId="rfDx1HMvXbQ" /> },
     { id: 'markets', component: <MarketsPanel /> },
     { id: 'currency', component: <CurrencyPanel /> },
     { id: 'sectors', component: <SectorsPanel /> },
@@ -895,5 +895,39 @@ function SystemInfoPanel() {
         </div>
       </div>
     </Panel>
+  );
+}
+// ─── National Broadcast Panel ──────────────────────────────────
+function NationalBroadcastPanel({ title, channelId, fallbackId }) {
+  const [feed, setFeed] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/youtube-cache');
+      if (res.ok) {
+        const cache = await res.json();
+        const entries = cache?.entries || [];
+        const match = entries.find(e => e.channel_id === channelId);
+        setFeed(match || null);
+      }
+    } catch { 
+      setFeed(null); 
+    }
+    setLoading(false);
+  }, [channelId]);
+  
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) return <Panel title={title} icon={Radio} loading={true} />;
+
+  const videoId = feed?.resolved_video_id || feed?.known_video_id || fallbackId;
+
+  return (
+    <LiveStreamPanel 
+      title={title} 
+      youtubeId={`https://www.youtube.com/watch?v=${videoId}`} 
+    />
   );
 }
