@@ -4,33 +4,41 @@
 
 > **A High-Fidelity, Technical Intelligence Hub for National Monitoring and Situational Awareness.**
 
-Observe India is a professional, data-dense dashboard designed for high-stakes national monitoring. It combines real-time data feeds from multiple global APIs with a sophisticated wireframe aesthetic to provide a comprehensive overview of India's economic, social, and infrastructure landscape.
+Observe India is a professional, data-dense dashboard designed for high-stakes national monitoring. It combines real-time data feeds from multiple global APIs and Indian government sources to provide a comprehensive overview of India's economic, social, and infrastructure landscape.
 
 ---
 
-## ⚡ Core Intelligence Pipeline
+## ✨ Cool Stuff & Highlights
 
-*   **Intelligent Grid Architecture**: Features a responsive, dynamic panel system that automatically rearranges and resizes data widgets based on viewport priority and data density, ensuring a clean workspace at any scale.
-*   **Groq AI Intelligence**: Leverages advanced LLMs to generate professional, context-aware 3-sentence intelligence briefs for every district in India.
-*   **Hyper-Local Monitoring**: Precise coordinates for any district via **Open-Meteo Geocoding**, providing accurate Weather and AQI data.
-*   **Live Media Streams**: Integrated YouTube live news channels for instant situational awareness.
-*   **Economic Indicators**: Real-time NIFTY/SENSEX indices, INR exchange rates, and RBI policy metrics.
+*   **Persistent & Customizable Layouts**: Draggable and resizable panels allow you to create your own surveillance layout. Your preferences are saved automatically and can go back to defaults anytime.
+*   **Dynamic Live Streams**: Automated synchronization of YouTube live streams for national and state news channels.
+*   **Geospatial Intelligence**: Interactive map with hover details, capital city highlights, and regional data density.
 
-## 🎨 Design Philosophy: Technical Wireframe
+---
 
-The interface focuses on technical clarity and refined data-centric aesthetics:
-- **Monochrome Precision**: High-contrast black, white, and grey tones for reduced cognitive load.
-- **Data-Dense Layout**: Maximizes information visibility through optimized panel spacing and resizing logic.
-- **Technical Typography**: Heavy use of monospace fonts for data points and uppercase tracking for a systematic feel.
-- **Grid Overlay**: A technical wireframe map with meridian/parallel overlays and pulsating city nodes.
+## ⚡ Core Features
+
+### 1. Intelligence Pipeline
+- **Groq AI Context**: Generates professional, context-aware intelligence briefs for every district.
+- **Hyper-Local Monitoring**: Precise coordinates for any district via **Open-Meteo Geocoding**, providing accurate Weather and AQI data.
+
+### 2. Live Media & News
+- **YouTube Live Integration**: Centralized `news.json` dataset powers a dynamic streaming matrix.
+- **Multi-Source News**: Integration with NewsData.io, NewsAPI.org, and the GDELT Project for comprehensive coverage.
+
+### 3. Economic & Infrastructure Monitoring
+- **Financial Indicators**: Real-time NIFTY/SENSEX indices, INR exchange rates, and RBI policy metrics.
+- **State Fuel Prices**: Real-time fuel price monitoring across states.
+- **EV Infrastructure**: Track EV charging stations and pumps (synced via automated pipelines).
 
 ---
 
 ## 🛠️ Technology Stack
 
-- **Frontend**: React 19 + Vite 6
+- **Frontend**: React 19 + Vite 8
 - **Styling**: Tailwind CSS 4 (Technical Modernist)
 - **Map Engine**: MapLibre GL (Wireframe/Contour Style)
+- **State Management & UI**: React Map GL, React Grid Layout, Lucide React
 - **APIs Integrated**:
   - **Intelligence**: Groq AI
   - **Environment**: Open-Meteo (Weather & AQI)
@@ -44,8 +52,8 @@ The interface focuses on technical clarity and refined data-centric aesthetics:
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/observe-india.git
-cd observe-india
+git clone https://github.com/aftab-s/india-monitor.git
+cd india-monitor
 ```
 
 ### 2. Install dependencies
@@ -54,18 +62,27 @@ npm install
 ```
 
 ### 3. Configure Environment Variables
-Create a `.env` file in the root directory:
-```env
-VITE_GROQ_API_KEY=your_groq_key
-VITE_NEWSDATA_API_KEY=your_newsdata_key
-VITE_NEWSAPI_KEY=your_newsapi_key
-VITE_OMDB_API_KEY=your_omdb_key
+Copy the example environment file and fill in your API keys:
+```bash
+cp .env.example .env
 ```
+*See [.env.example](.env.example) for the list of required keys.*
 
 ### 4. Run locally
 ```bash
 npm run dev
 ```
+
+---
+
+## 🔄 Automated Synchronization
+
+The project includes several scripts to keep the data fresh. These are configured in `package.json`:
+
+- `npm run youtube:sync`: Syncs the latest YouTube live streams.
+- `npm run fuel:sync`: Updates state-level fuel prices.
+- `npm run pumps:sync`: Syncs fuel pump data.
+- `npm run ev:sync`: Syncs EV station data.
 
 ---
 
