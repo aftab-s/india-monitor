@@ -25,7 +25,8 @@ import {
   fetchExchangeRates, fetchNews, fetchGdeltIntel, fetchMarketIndices,
   fetchAirQuality, getRbiPolicyRates, getEnergyData,
   WATER_RESERVOIRS, CYBER_THREATS, BORDER_STATUS, CROP_PRICES,
-  ELECTION_DATA, UNICORN_DATA, INFRA_TARGETS
+  ELECTION_DATA, UNICORN_DATA, INFRA_TARGETS,
+  SECTOR_HEATMAP, SECURITY_EVENTS, SYSTEM_INFO
 } from '../services/api';
 import LiveStreamPanel from './LiveStreamPanel';
 import IndiaMap from './IndiaMap';
@@ -290,20 +291,10 @@ function CurrencyPanel() {
 
 // ─── Sectors Panel ────────────────────────────────────────────
 function SectorsPanel() {
-  const sectors = [
-    { name: 'IT', change: -0.42, color: '#3b82f6' },
-    { name: 'Banking', change: 0.87, color: '#10b981' },
-    { name: 'Pharma', change: 1.34, color: '#8b5cf6' },
-    { name: 'Auto', change: 0.56, color: '#f59e0b' },
-    { name: 'FMCG', change: -0.18, color: '#ec4899' },
-    { name: 'Energy', change: 2.15, color: '#ef4444' },
-    { name: 'Metal', change: 1.78, color: '#6b7280' },
-  ];
-
   return (
     <Panel title="Sector Heatmap" icon={BarChart3}>
       <div className="grid grid-cols-2 gap-1">
-        {sectors.map((s, i) => (
+        {SECTOR_HEATMAP.map((s, i) => (
           <div key={i} className={`px-2 py-2 rounded text-center ${s.change >= 0 ? 'bg-transparent' : 'bg-transparent'}`}>
             <div className="text-[10px] text-gray-400 mb-0.5">{s.name}</div>
             <div className={`text-xs font-mono font-semibold ${s.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
@@ -578,19 +569,7 @@ function PoliticsPanel() {
 // ─── Security Panel ───────────────────────────────────────────
 // ─── Security Panel ───────────────────────────────────────────
 function SecurityPanel() {
-  // Static representation to avoid non-existent APIs that require auth
-  const data = {
-    lwe: [
-      { location: 'Bijapur, CG', type: 'Encounter', date: '4h ago', severity: 'high' },
-      { location: 'Sukma, CG', type: 'IED recovery', date: '12h ago', severity: 'medium' },
-      { location: 'Latehar, JH', type: 'Patrol', date: '2d ago', severity: 'low' },
-    ],
-    jk: [
-      { location: 'Shopian, JK', type: 'Encounter', date: 'Live', severity: 'high' },
-      { location: 'Rajouri, JK', type: 'Infiltration bid', date: '1d ago', severity: 'medium' },
-    ]
-  };
-  const allEvents = [...data.lwe, ...data.jk];
+  const allEvents = [...SECURITY_EVENTS.lwe, ...SECURITY_EVENTS.jk];
 
   return (
     <Panel title="Security Events" icon={ShieldAlert} badge={`${allEvents.length}`} badgeColor="danger">
@@ -598,7 +577,7 @@ function SecurityPanel() {
         <div key={i} className="flex items-center justify-between py-1.5 border-b border-dark-500 last:border-0">
           <div>
             <div className="text-[10px] text-gray-400">{e.location}</div>
-            <div className="text-[9px] text-gray-600">{e.type} · {e.date}</div>
+            <div className="text-[9px] text-gray-600">{e.type}</div>
           </div>
           <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
             e.severity === 'high' ? 'bg-transparent text-red-400' :
@@ -897,26 +876,25 @@ function ElectionsPanel() {
 // ─── Dashboard Footer Panel ──────────────────────────────────
 function SystemInfoPanel() {
   return (
-    <Panel title="Signal Deck" icon={Cpu} badge="LIVE SURFACE" badgeColor="info" span={2}>
+    <Panel title="Signal Deck" icon={Cpu} badge={SYSTEM_INFO.badge} badgeColor="info" span={2}>
       <div className="grid gap-4 md:grid-cols-[1.3fr_0.9fr_0.8fr] items-stretch">
         <div className="rounded-sm border border-dark-500 bg-white/[0.02] p-4">
-          <div className="text-[10px] text-gray-500 uppercase tracking-[0.35em] mb-3">Observe India</div>
+          <div className="text-[10px] text-gray-500 uppercase tracking-[0.35em] mb-3">{SYSTEM_INFO.brand}</div>
           <div className="flex items-baseline gap-2 mb-2">
-            <span className="text-2xl font-semibold text-white">01</span>
-            <span className="text-[10px] text-gray-400 uppercase tracking-[0.3em]">Live civic signal layer</span>
+            <span className="text-2xl font-semibold text-white">{SYSTEM_INFO.index}</span>
+            <span className="text-[10px] text-gray-400 uppercase tracking-[0.3em]">{SYSTEM_INFO.tagline}</span>
           </div>
           <p className="text-[10px] leading-relaxed text-gray-500 max-w-md">
-            A compact editorial surface for markets, weather, alerts, and live coverage. Built to stay readable, fast, and low-noise.
+            {SYSTEM_INFO.description}
           </p>
         </div>
 
         <div className="rounded-sm border border-dark-500 bg-white/[0.02] p-4">
           <div className="text-[10px] text-gray-500 uppercase tracking-[0.35em] mb-3">Sources</div>
           <div className="grid grid-cols-2 gap-2">
-            <StatValue label="Live Feeds" value="12" small />
-            <StatValue label="Coverage" value="36 States" small />
-            <StatValue label="Update Pace" value="Realtime" small />
-            <StatValue label="Layout" value="Modular" small />
+            {SYSTEM_INFO.sources.map((s, i) => (
+              <StatValue key={i} label={s.label} value={s.value} small />
+            ))}
           </div>
         </div>
 
@@ -925,25 +903,25 @@ function SystemInfoPanel() {
             <div>
               <div className="text-[10px] text-gray-500 uppercase tracking-[0.35em] mb-3">Release</div>
               <div className="flex items-center gap-1.5 px-2 py-1.5 border border-dark-500 text-[8px] font-mono text-gray-700 uppercase tracking-tighter w-fit">
-                BUILD_2026.05.04_REL_A
+                {SYSTEM_INFO.build}
               </div>
             </div>
             <div className="text-right">
               <div className="text-[10px] text-gray-500 uppercase tracking-[0.35em] mb-3">Collaboration</div>
               <a 
-                href="https://what-s-happening-in-kerala.vercel.app/" 
+                href={SYSTEM_INFO.collaboration.href} 
                 target="_blank" 
                 rel="noreferrer" 
                 className="flex items-center gap-2 px-2 py-1.5 border border-accent/40 hover:border-accent hover:bg-accent/5 transition-all text-[8px] font-mono tracking-widest text-accent uppercase cursor-pointer group ml-auto w-fit"
               >
-                <span>Kerala Monitor</span>
+                <span>{SYSTEM_INFO.collaboration.label}</span>
                 <ExternalLink size={8} />
               </a>
             </div>
           </div>
 
           <a 
-            href="https://github.com/Aftab-S/India-Monitor" 
+            href={SYSTEM_INFO.githubUrl} 
             target="_blank" 
             rel="noreferrer" 
             className="flex items-center justify-between gap-2 px-2.5 py-2 bg-white/5 border border-status-warning/20 hover:border-status-warning hover:text-status-warning transition-all text-[9px] font-mono tracking-widest text-gray-400 uppercase cursor-pointer group"
@@ -952,7 +930,7 @@ function SystemInfoPanel() {
             <ExternalLink size={10} className="group-hover:text-status-warning" />
           </a>
           <div className="text-[9px] text-gray-600 uppercase tracking-[0.3em]">
-            © 2026 Observe India
+            {SYSTEM_INFO.copyright}
           </div>
         </div>
       </div>
