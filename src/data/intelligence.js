@@ -1,6 +1,3 @@
-// ✅ Fully updated — May 2026
-// Sources: CWC Bulletin Apr 30 2026 | CERT-In Annual Report 2025 | PIB | Official MSP 2025-26
-
 export const STATE_ECONOMY = {
   MH: { gsdp: '₹35.6L Cr', growth: 7.2, perCapita: '₹2.7L', industries: ['Finance', 'IT', 'Auto'] },
   KA: { gsdp: '₹22.4L Cr', growth: 8.1, perCapita: '₹3.1L', industries: ['IT', 'Biotech', 'Aerospace'] },
@@ -18,38 +15,27 @@ export const STATE_ECONOMY = {
 };
 
 export const CROP_PRICES = {
-  // Official Government of India MSP 2025-26
-  Wheat:     { price: 2425, change: 6.6 },   // Rabi 2025-26
-  Rice:      { price: 2369, change: 3.0 },   // Kharif 2025-26 (common paddy)
-  Mustard:   { price: 5950, change: 5.3 },   // Rabi 2025-26
-  Cotton:    { price: 7710, change: 8.3 },   // Kharif 2025-26 (medium staple)
-  Soybean:   { price: 5328, change: 8.9 },   // Kharif 2025-26
-  Sugarcane: { price: 355,  change: 4.4 },   // FRP 2025-26 season
+  Wheat:     { price: 2425, change: 6.6 },
+  Rice:      { price: 2369, change: 3.0 },
+  Mustard:   { price: 5950, change: 5.3 },
+  Cotton:    { price: 7710, change: 8.3 },
+  Soybean:   { price: 5328, change: 8.9 },
+  Sugarcane: { price: 355,  change: 4.4 },
 };
 
 export const WATER_RESERVOIRS = [
-  // Source: CWC Weekly Bulletin Apr 30, 2026 — Top 5 by live storage capacity
-  // National: 166 reservoirs at ~37% (below 40% threshold); Krishna basin critical at ~22.55%
-  // #1 Indira Sagar — 12.22 BCM — Narmada, MP
-  { name: 'Indira Sagar',    state: 'MP',    capacity: '39%', trend: 'down',   alert: true  }, // Narmada basin ~38.82%
-  // #2 Nagarjuna Sagar — 9.75 BCM — Krishna, TS/AP
-  { name: 'Nagarjuna Sagar', state: 'TS/AP', capacity: '22%', trend: 'down',   alert: true  }, // Krishna basin ~22.55% — critical
-  // #3 Bhakra / Gobind Sagar — 9.34 BCM — Sutlej, HP/PB
-  { name: 'Bhakra Nangal',   state: 'HP/PB', capacity: '42%', trend: 'down',   alert: true  }, // Northern region declining
-  // #4 Srisailam — 6.01 BCM — Krishna, TS/AP
-  { name: 'Srisailam',       state: 'TS/AP', capacity: '20%', trend: 'down',   alert: true  }, // Krishna basin — critical
-  // #5 Sardar Sarovar — 5.8 BCM — Narmada, GJ
-  { name: 'Sardar Sarovar',  state: 'GJ',    capacity: '39%', trend: 'down',   alert: true  }, // Narmada basin ~38.82%
+  { name: 'Indira Sagar',    state: 'MP',    capacity: '39%', trend: 'down', alert: true },
+  { name: 'Nagarjuna Sagar', state: 'TS/AP', capacity: '22%', trend: 'down', alert: true },
+  { name: 'Bhakra Nangal',   state: 'HP/PB', capacity: '42%', trend: 'down', alert: true },
+  { name: 'Srisailam',       state: 'TS/AP', capacity: '20%', trend: 'down', alert: true },
+  { name: 'Sardar Sarovar',  state: 'GJ',    capacity: '39%', trend: 'down', alert: true },
 ];
 
 export const CYBER_THREATS = [
-  // Source: CERT-In Annual Report 2025 (Jan 2026) | DSCI India Cyber Threat Report 2025
-  // Total 2025: 29.44 lakh incidents | 1,530 alerts | 390 vulnerability notes
-  // Jan–Jun 2025: avg 4.1M attacks/month on critical sectors | 4.26B attacks blocked
-  { sector: 'Banking & Fin', level: 'CRITICAL', incidents: 520, trend: '+30%'  }, // BFSI top audit focus; DDoS +350%
-  { sector: 'Energy Grid',   level: 'HIGH',     incidents: 94,  trend: '+18%'  }, // CSIRT-Power active; OT/SCADA targeting rising
-  { sector: 'Gov Portals',   level: 'CRITICAL', incidents: 680, trend: '+25%'  }, // Largest category per CERT-In
-  { sector: 'Healthcare',    level: 'HIGH',     incidents: 315, trend: '+247%' }, // Ransomware surge; hospital attacks
+  { sector: 'Banking & Fin', level: 'CRITICAL', incidents: 520, trend: '+30%'  },
+  { sector: 'Energy Grid',   level: 'HIGH',     incidents: 94,  trend: '+18%'  },
+  { sector: 'Gov Portals',   level: 'CRITICAL', incidents: 680, trend: '+25%'  },
+  { sector: 'Healthcare',    level: 'HIGH',     incidents: 315, trend: '+247%' },
 ];
 
 export const BORDER_STATUS = [
@@ -61,9 +47,8 @@ export const BORDER_STATUS = [
 ];
 
 export const INFRA_TARGETS = {
-  // Source: PIB / NHAI FY25 report | Indian Railways Apr 2026 | AAI 2025
   highways: { built: 146195, target: 200000, fy: 'FY25-26', unit: 'total NH network km' },
-  railways:  { electrified: 69873, total: 70117, fy: 'Mar 2026' }, // 99.6% electrified
+  railways:  { electrified: 69873, total: 70117, fy: 'Mar 2026' },
   airports:  { operational: 160, target: 220 },
 };
 
@@ -85,14 +70,13 @@ export const ELECTION_DATA = {
 };
 
 export const UNICORN_DATA = [
-  { name: 'Flipkart',  sector: 'E-commerce', valuation: 38.0, year: 2012, note: '~$38-40B estimate 2025' },
-  // { name: 'BYJU\'S',  sector: 'Edtech',      valuation: 0.5,  year: 2018, note: 'Collapsed — near-zero value' },
-  { name: 'Swiggy',   sector: 'Food delivery', valuation: 10.7, year: 2018, note: 'Publicly listed IPO Nov 2024' },
-  { name: 'OYO',      sector: 'Hospitality', valuation: 6.5,  year: 2018, note: 'Down-round from $9B' },
-  { name: 'Ola',      sector: 'Ride-hailing', valuation: 4.8, year: 2018, note: 'Markdown by Vanguard from $7.3B' },
-  { name: 'PhonePe',  sector: 'Fintech',     valuation: 14.5, year: 2020, note: 'Last known valuation Oct 2025' },
-  { name: 'Zerodha',  sector: 'Fintech',     valuation: 3.6,  year: 2020 },
-  { name: 'Razorpay', sector: 'Fintech',     valuation: 5.5,  year: 2021, note: 'IPO-bound; reset from $7.5B peak' },
+  { name: 'Flipkart',  sector: 'E-commerce',    valuation: 38.0, year: 2012, note: '~$38-40B estimate 2025' },
+  { name: 'Swiggy',    sector: 'Food delivery', valuation: 10.7, year: 2018, note: 'Publicly listed IPO Nov 2024' },
+  { name: 'OYO',       sector: 'Hospitality',   valuation: 6.5,  year: 2018, note: 'Down-round from $9B' },
+  { name: 'Ola',       sector: 'Ride-hailing',  valuation: 4.8,  year: 2018, note: 'Markdown by Vanguard from $7.3B' },
+  { name: 'PhonePe',   sector: 'Fintech',       valuation: 14.5, year: 2020, note: 'Last known valuation Oct 2025' },
+  { name: 'Zerodha',   sector: 'Fintech',       valuation: 3.6,  year: 2020 },
+  { name: 'Razorpay',  sector: 'Fintech',       valuation: 5.5,  year: 2021, note: 'IPO-bound; reset from $7.5B peak' },
 ];
 
 export const STATE_DEMOGRAPHICS = {
@@ -135,24 +119,24 @@ export const STATE_AGRICULTURE = {
 export const SAFE_REGIONS = ['KL', 'SK', 'MZ', 'GA', 'HP', 'PY', 'LD', 'AN', 'CH', 'DD'];
 
 export const SECTOR_HEATMAP = [
-  { name: 'IT',      change: -1.24, color: '#3b82f6' }, // Nifty IT underperforming YTD -12%; down today
-  { name: 'Banking', change:  0.43, color: '#10b981' }, // PSU Banks +29% YTD; resilient despite LoC tension
-  { name: 'Pharma',  change: -0.65, color: '#8b5cf6' }, // Muted; freight cost pressure, geopolitical headwinds
-  { name: 'Auto',    change:  0.91, color: '#f59e0b' }, // Strong YTD +22%; GST cuts boosting demand
-  { name: 'FMCG',   change: -0.32, color: '#ec4899' }, // Cautious; edible oil prices up; crude above $100
-  { name: 'Energy',  change:  1.18, color: '#ef4444' }, // Resilient; crude >$100 benefits upstream; Oil & Gas advancing
-  { name: 'Metal',   change:  1.54, color: '#6b7280' }, // Strong YTD +27%; China steel output down, EV demand up
+  { name: 'IT',      change: -1.24, color: '#3b82f6' },
+  { name: 'Banking', change:  0.43, color: '#10b981' },
+  { name: 'Pharma',  change: -0.65, color: '#8b5cf6' },
+  { name: 'Auto',    change:  0.91, color: '#f59e0b' },
+  { name: 'FMCG',    change: -0.32, color: '#ec4899' },
+  { name: 'Energy',  change:  1.18, color: '#ef4444' },
+  { name: 'Metal',   change:  1.54, color: '#6b7280' },
 ];
 
 export const SECURITY_EVENTS = {
   lwe: [
-    { location: 'Bijapur, CG',       type: 'Combing Op',   date: '6h ago',  severity: 'high'   },
-    { location: 'Sukma, CG',         type: 'IED Detection', date: '1d ago', severity: 'medium' },
-    { location: 'W. Singhbhum, JH',  type: 'Patrol',       date: '3d ago',  severity: 'low'    },
+    { location: 'Bijapur, CG',       type: 'Combing Op',    date: '6h ago',  severity: 'high'   },
+    { location: 'Sukma, CG',         type: 'IED Detection', date: '1d ago',  severity: 'medium' },
+    { location: 'W. Singhbhum, JH',  type: 'Patrol',        date: '3d ago',  severity: 'low'    },
   ],
   jk: [
-    { location: 'Poonch (Krishna Ghati), JK', type: 'Infiltration Foiled', date: 'Yesterday', severity: 'high'   }, // LeT terrorist neutralised
-    { location: 'Poonch, JK',                 type: 'Search Op ongoing',   date: 'Live',      severity: 'medium' }, // Sanitisation op still active
+    { location: 'Poonch (Krishna Ghati), JK', type: 'Infiltration Foiled', date: 'Yesterday', severity: 'high'   },
+    { location: 'Poonch, JK',                 type: 'Search Op ongoing',   date: 'Live',      severity: 'medium' },
   ],
 };
 
